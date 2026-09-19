@@ -1,0 +1,1260 @@
+// Схема данных MVP «Синдикат». Источник: docs/sindikat-technical-handoff.md, раздел 6.
+// Соглашения:
+//  - все даты в UTC (timestamptz); локальная зона события хранится отдельно;
+//  - деньги — целые в минимальных единицах (копейки);
+//  - файлы хранятся как id в `files`, а не как публичные URL;
+//  - геометрия — PostGIS через Unsupported (Prisma не типизирует geography).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// ───────────────────────── Identity & Users ─────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+model User {
+  id         String     @id @default(uuid())
+  phone      String     @unique
+  status     UserStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now()) @map("created_at")
+  lastSeenAt DateTime?  @map("last_seen_at")
+
+  profile       UserProfile?
+  disciplines   UserDiscipline[]
+  targetSpecies UserTargetSpecies[]
+  consents      Consent[]
+  roles         UserRole[]
+  devices       Device[]
+  sessions      Session[]
+  gearKits      GearKit[]
+  boats         Boat[]
+  catches       Catch[]
+  registrations Registration[]     @relation("RegistrationOwner")
+  memberships   RegistrationMember[]
+  results       Result[]
+  judgeDecisions JudgeDecision[]
+  protests      Protest[]
+  ledger        RankingLedger[]
+  rankings      RankingEntry[]
+  auditLogs     AuditLog[]
+  catchLikes    CatchLike[]
+  catchComments CatchComment[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  userId          String  @id @map("user_id")
+  displayName     String  @map("display_name")
+  avatarFileId    String? @map("avatar_file_id")
+  cityId          String? @map("city_id")
+  experienceYears Int?    @map("experience_years")
+  bio             String?
+  /// Типы домашних акваторий (река, водохранилище, пруд, платник, карьер, лёд) — быстрый ответ онбординга; точные водоёмы — user_home_waters.
+  waterTypes      String[] @default([]) @map("water_types")
+  /// Онбординг пройден до конца (или пропущен осознанно). До этого приложение показывает мастер.
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user   User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatar File? @relation(fields: [avatarFileId], references: [id])
+  city   City? @relation(fields: [cityId], references: [id])
+
+  @@map("user_profiles")
+}
+
+enum Discipline {
+  STREET
+  AREA_TROUT
+  FEEDER
+  FLOAT
+  SHORE_JIG
+  BOAT
+  ICE
+}
+
+model UserDiscipline {
+  userId     String     @map("user_id")
+  discipline Discipline
+  priority   Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, discipline])
+  @@map("user_disciplines")
+}
+
+model UserTargetSpecies {
+  userId    String @map("user_id")
+  speciesId String @map("species_id")
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  species FishSpecies @relation(fields: [speciesId], references: [id])
+
+  @@id([userId, speciesId])
+  @@map("user_target_species")
+}
+
+enum ConsentType {
+  TERMS
+  PRIVACY
+  MARKETING
+  GEO_PUBLISH
+}
+
+model Consent {
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  type       ConsentType
+  version    String
+  acceptedAt DateTime    @default(now()) @map("accepted_at")
+  source     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("consents")
+}
+
+enum Role {
+  USER
+  PARTICIPANT
+  CLUB_CAPTAIN
+  CHANNEL_OWNER
+  MODERATOR
+  JUDGE
+  HEAD_JUDGE
+  ORGANIZER
+  SUPPORT
+  SYSTEM_ADMIN
+}
+
+enum RoleScopeType {
+  GLOBAL
+  TOURNAMENT
+  CLUB
+  CHANNEL
+}
+
+/// Роль с областью действия: судья конкретного турнира, глобальный админ и т.д.
+model UserRole {
+  id        String        @id @default(uuid())
+  userId    String        @map("user_id")
+  role      Role
+  scopeType RoleScopeType @default(GLOBAL) @map("scope_type")
+  scopeId   String?       @map("scope_id")
+  grantedBy String?       @map("granted_by")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role, scopeType, scopeId])
+  @@map("user_roles")
+}
+
+model Device {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  platform   String
+  pushToken  String?  @map("push_token")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("devices")
+}
+
+/// Refresh-сессии; access-токен не хранится.
+model Session {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  deviceId         String?   @map("device_id")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OtpChallenge {
+  id        String   @id @default(uuid())
+  phone     String
+  codeHash  String   @map("code_hash")
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone, createdAt])
+  @@map("otp_challenges")
+}
+
+// ───────────────────────── Справочники ─────────────────────────
+
+model City {
+  id     String @id @default(uuid())
+  name   String
+  region String?
+
+  profiles UserProfile[]
+
+  @@map("cities")
+}
+
+model FishSpecies {
+  id       String  @id @default(uuid())
+  slug     String  @unique
+  nameRu   String  @map("name_ru")
+  nameLat  String? @map("name_lat")
+  isPredator Boolean @default(false) @map("is_predator")
+
+  targetOf UserTargetSpecies[]
+  catches  Catch[]
+  results  Result[]
+
+  @@map("fish_species")
+}
+
+model Waterbody {
+  id       String  @id @default(uuid())
+  name     String
+  kind     String  // река, озеро, водохранилище, пруд, карьер
+  region   String?
+  /// PostGIS: точка центра водоёма
+  center   Unsupported("geography(Point,4326)")?
+
+  catchLocations CatchLocation[]
+  tournamentLocations TournamentLocation[]
+
+  @@map("waterbodies")
+}
+
+// ───────────────────────── Файлы ─────────────────────────
+
+enum FileStatus {
+  PENDING
+  UPLOADED
+  PROCESSED
+  REJECTED
+}
+
+model File {
+  id          String     @id @default(uuid())
+  ownerId     String?    @map("owner_id")
+  bucket      String
+  objectKey   String     @unique @map("object_key")
+  mimeType    String     @map("mime_type")
+  sizeBytes   Int        @map("size_bytes")
+  checksum    String?
+  status      FileStatus @default(PENDING)
+  isPrivate   Boolean    @default(false) @map("is_private")
+  metadata    Json?
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  avatars     UserProfile[]
+  gearKits    GearKit[]
+  catchMedia  CatchMedia[]
+  resultMedia ResultMedia[]
+  documents   TournamentDocument[]
+
+  @@map("files")
+}
+
+// ───────────────────────── Арсенал ─────────────────────────
+
+enum Visibility {
+  PUBLIC
+  FRIENDS
+  PRIVATE
+}
+
+enum GearCatalogType {
+  ROD
+  REEL
+  LINE
+  LEADER
+  LURE
+  BOAT
+  MOTOR
+}
+
+model GearBrand {
+  id     String @id @default(uuid())
+  name   String @unique
+  models GearModel[]
+
+  @@map("gear_catalog_brands")
+}
+
+model GearModel {
+  id      String          @id @default(uuid())
+  brandId String          @map("brand_id")
+  type    GearCatalogType
+  name    String
+  specs   Json?
+
+  brand GearBrand @relation(fields: [brandId], references: [id])
+
+  @@unique([brandId, type, name])
+  @@map("gear_catalog_models")
+}
+
+/// Модель, которой нет в каталоге, — очередь нормализации для администратора.
+model GearCustomRequest {
+  id        String          @id @default(uuid())
+  ownerId   String          @map("owner_id")
+  type      GearCatalogType
+  brandText String          @map("brand_text")
+  modelText String          @map("model_text")
+  resolvedModelId String?   @map("resolved_model_id")
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@map("gear_custom_requests")
+}
+
+/// Комплект: удилище → катушка → основная леска → поводок → приманки.
+/// Элементы хранятся в JSON по схемам из @sindikat/domain (rodSchema, reelSchema, …):
+/// они редко участвуют в запросах, зато часто меняются по составу полей.
+model GearKit {
+  id           String     @id @default(uuid())
+  ownerId      String     @map("owner_id")
+  name         String
+  discipline   Discipline
+  targetSpeciesIds String[] @map("target_species_ids")
+  purpose      String?
+  isPrimary    Boolean    @default(false) @map("is_primary")
+  visibility   Visibility @default(PUBLIC)
+  photoFileId  String?    @map("photo_file_id")
+  comment      String?
+  rod          Json?
+  reel         Json?
+  mainLine     Json?      @map("main_line")
+  leader       Json?
+  lures        Json       @default("[]")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  photo File? @relation(fields: [photoFileId], references: [id])
+  catchLinks CatchGearLink[]
+  registrations Registration[]
+
+  @@index([ownerId])
+  @@map("gear_kits")
+}
+
+model Boat {
+  id         String     @id @default(uuid())
+  ownerId    String     @map("owner_id")
+  type       String
+  brandId    String?    @map("brand_id")
+  modelId    String?    @map("model_id")
+  customName String?    @map("custom_name")
+  lengthCm   Int?       @map("length_cm")
+  material   String?
+  seats      Int?
+  capacityKg Int?       @map("capacity_kg")
+  equipment  Json?      // мотор, электромотор, эхолот, прицеп
+  availableForTeamTrips Boolean @default(false) @map("available_for_team_trips")
+  visibility Visibility @default(PUBLIC)
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents BoatDocument[]
+  registrations Registration[]
+
+  @@map("boats")
+}
+
+/// Отдельный приватный контур: регистрационный номер и документы лодки.
+/// Доступ только владельцу и организатору конкретного лодочного турнира.
+model BoatDocument {
+  id        String   @id @default(uuid())
+  boatId    String   @map("boat_id")
+  kind      String   // registration_number, certificate, insurance
+  valueEnc  String   @map("value_enc") // зашифровано на уровне приложения
+  fileId    String?  @map("file_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  boat Boat @relation(fields: [boatId], references: [id], onDelete: Cascade)
+
+  @@map("boat_documents")
+}
+
+// ───────────────────────── Уловы и трофеи ─────────────────────────
+
+enum LocationPrivacy {
+  EXACT
+  WATERBODY_ONLY
+  HIDDEN
+}
+
+enum TrophyStatus {
+  PENDING_MODERATION
+  PUBLISHED
+  HIDDEN
+}
+
+/// Единая сущность: запись дневника, которую можно повысить до трофея.
+model Catch {
+  id          String     @id @default(uuid())
+  ownerId     String     @map("owner_id")
+  speciesId   String     @map("species_id")
+  lengthMm    Int?       @map("length_mm")
+  weightG     Int?       @map("weight_g")
+  description String?
+  caughtAt    DateTime   @map("caught_at")
+  visibility  Visibility @default(PUBLIC)
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  owner    User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  species  FishSpecies @relation(fields: [speciesId], references: [id])
+  media    CatchMedia[]
+  gearLink CatchGearLink?
+  location CatchLocation?
+  trophy   Trophy?
+  tournamentLink CatchTournamentLink?
+  likes    CatchLike[]
+  comments CatchComment[]
+
+  @@index([ownerId, caughtAt])
+  @@map("catches")
+}
+
+/// Реакции на опубликованный трофей — первый кусочек модуля Community (handoff §4.3).
+model CatchLike {
+  catchId   String   @map("catch_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  catch Catch @relation(fields: [catchId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([catchId, userId])
+  @@map("catch_likes")
+}
+
+model CatchComment {
+  id        String    @id @default(uuid())
+  catchId   String    @map("catch_id")
+  authorId  String    @map("author_id")
+  text      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  catch  Catch @relation(fields: [catchId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([catchId, createdAt])
+  @@map("catch_comments")
+}
+
+model CatchMedia {
+  catchId   String @map("catch_id")
+  fileId    String @map("file_id")
+  sortOrder Int    @default(0) @map("sort_order")
+
+  catch Catch @relation(fields: [catchId], references: [id], onDelete: Cascade)
+  file  File  @relation(fields: [fileId], references: [id])
+
+  @@id([catchId, fileId])
+  @@map("catch_media")
+}
+
+model CatchGearLink {
+  catchId   String  @id @map("catch_id")
+  gearKitId String? @map("gear_kit_id")
+  lureRef   Json?   @map("lure_ref")
+  freeText  String? @map("free_text")
+
+  catch   Catch    @relation(fields: [catchId], references: [id], onDelete: Cascade)
+  gearKit GearKit? @relation(fields: [gearKitId], references: [id], onDelete: SetNull)
+
+  @@map("catch_gear_links")
+}
+
+/// Точная координата никогда не отдаётся в публичный API при WATERBODY_ONLY / HIDDEN.
+model CatchLocation {
+  catchId     String          @id @map("catch_id")
+  point       Unsupported("geography(Point,4326)")?
+  waterbodyId String?         @map("waterbody_id")
+  privacy     LocationPrivacy @default(HIDDEN)
+
+  catch     Catch      @relation(fields: [catchId], references: [id], onDelete: Cascade)
+  waterbody Waterbody? @relation(fields: [waterbodyId], references: [id])
+
+  @@map("catch_locations")
+}
+
+model Trophy {
+  catchId          String       @id @map("catch_id")
+  status           TrophyStatus @default(PENDING_MODERATION)
+  isPersonalRecord Boolean      @default(false) @map("is_personal_record")
+  recordType       String?      @map("record_type") // по виду: длина / вес
+  promotedAt       DateTime     @default(now()) @map("promoted_at")
+
+  catch Catch @relation(fields: [catchId], references: [id], onDelete: Cascade)
+
+  @@map("trophies")
+}
+
+model CatchTournamentLink {
+  catchId      String  @id @map("catch_id")
+  tournamentId String  @map("tournament_id")
+  resultId     String? @map("result_id")
+
+  catch      Catch      @relation(fields: [catchId], references: [id], onDelete: Cascade)
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@map("catch_tournament_links")
+}
+
+// ───────────────────────── Турниры ─────────────────────────
+
+model Season {
+  id        String   @id @default(uuid())
+  year      Int      @unique
+  title     String
+  startsAt  DateTime @map("starts_at")
+  endsAt    DateTime @map("ends_at")
+  isActive  Boolean  @default(false) @map("is_active")
+
+  tournaments  Tournament[]
+  rankingRules RankingRules[]
+  ledger       RankingLedger[]
+  rankings     RankingEntry[]
+
+  @@map("seasons")
+}
+
+enum TournamentLevel {
+  SPRINT
+  QUALIFIER
+  OPEN
+  MAJOR
+  GRAND_FINAL
+}
+
+enum TournamentStatus {
+  DRAFT
+  INTERNAL_REVIEW
+  PUBLISHED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  LIVE
+  JUDGING
+  FINALIZED
+  ARCHIVED
+  POSTPONED
+  CANCELLED
+}
+
+enum ScoringMode {
+  LENGTH_SUM
+  TOTAL_WEIGHT
+  DUEL_POINTS
+  PLACE_SUM
+  BIGGEST_FISH
+}
+
+enum ParticipationFormat {
+  SOLO
+  PAIR
+  TEAM
+  CREW
+}
+
+model Tournament {
+  id          String           @id @default(uuid())
+  seasonId    String           @map("season_id")
+  slug        String           @unique
+  title       String
+  description String?
+  discipline  Discipline
+  level       TournamentLevel
+  status      TournamentStatus @default(DRAFT)
+  scoringMode ScoringMode      @map("scoring_mode")
+  formats     ParticipationFormat[]
+  capacity    Int
+  /// Коэффициент события фиксируется на турнире при публикации из правил сезона.
+  coefficient Decimal          @db.Decimal(4, 2)
+  entryFeeMinor Int?           @map("entry_fee_minor")
+  currency    String           @default("RUB")
+  timezone    String           @default("Europe/Moscow")
+  startsAt    DateTime         @map("starts_at")
+  endsAt      DateTime         @map("ends_at")
+  reserveDate DateTime?        @map("reserve_date")
+  registrationOpensAt  DateTime? @map("registration_opens_at")
+  registrationClosesAt DateTime? @map("registration_closes_at")
+  protestDeadlineMinutes Int   @default(30) @map("protest_deadline_minutes")
+  createdBy   String           @map("created_by")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  season        Season               @relation(fields: [seasonId], references: [id])
+  location      TournamentLocation?
+  rules         TournamentRules[]
+  documents     TournamentDocument[]
+  schedule      TournamentScheduleItem[]
+  registrations Registration[]
+  waitlist      WaitlistEntry[]
+  markers       CompetitionMarker[]
+  results       Result[]
+  protests      Protest[]
+  snapshots     LeaderboardSnapshot[]
+  ledger        RankingLedger[]
+  catchLinks    CatchTournamentLink[]
+
+  @@index([seasonId, startsAt])
+  @@index([status])
+  @@map("tournaments")
+}
+
+model TournamentLocation {
+  tournamentId String  @id @map("tournament_id")
+  title        String
+  address      String
+  meetingPoint String? @map("meeting_point")
+  parking      String?
+  waterbodyId  String? @map("waterbody_id")
+  /// Точка сбора
+  point        Unsupported("geography(Point,4326)")?
+  /// Зона / маршрут / акватория
+  zone         Unsupported("geography(Geometry,4326)")?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  waterbody  Waterbody? @relation(fields: [waterbodyId], references: [id])
+
+  @@map("tournament_locations")
+}
+
+/// Версионируемые правила: формат зачёта, разрешения, запреты, штрафы.
+model TournamentRules {
+  id             String   @id @default(uuid())
+  tournamentId   String   @map("tournament_id")
+  version        Int
+  allowedTackle  String[] @map("allowed_tackle")
+  forbiddenTackle String[] @map("forbidden_tackle")
+  scoringSummary String   @map("scoring_summary")
+  fixationSummary String  @map("fixation_summary")
+  penalties      String[]
+  /// Параметры зачёта для движка (LengthSumRules и т.п.)
+  scoringParams  Json     @map("scoring_params")
+  publishedAt    DateTime? @map("published_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, version])
+  @@map("tournament_rules")
+}
+
+model TournamentDocument {
+  id           String    @id @default(uuid())
+  tournamentId String    @map("tournament_id")
+  kind         String    // regulation, safety, legal
+  title        String
+  version      Int
+  fileId       String    @map("file_id")
+  publishedAt  DateTime? @map("published_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  file       File       @relation(fields: [fileId], references: [id])
+
+  @@map("tournament_documents")
+}
+
+model TournamentScheduleItem {
+  id           String   @id @default(uuid())
+  tournamentId String   @map("tournament_id")
+  at           DateTime
+  title        String
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@map("tournament_schedule")
+}
+
+// ───────────────────────── Регистрация ─────────────────────────
+
+enum RegistrationStatus {
+  DRAFT
+  WAITING_MEMBERS
+  WAITING_PAYMENT
+  CONFIRMED
+  CHECKED_IN
+  FINISHED
+  WAITLISTED
+  PAYMENT_FAILED
+  CANCELLED
+  REFUND_PENDING
+  REFUNDED
+  REJECTED
+}
+
+enum MemberRole {
+  OWNER
+  PARTNER
+  TEAM_MEMBER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model Registration {
+  id           String              @id @default(uuid())
+  tournamentId String              @map("tournament_id")
+  ownerId      String              @map("owner_id")
+  format       ParticipationFormat
+  status       RegistrationStatus  @default(DRAFT)
+  amountMinor  Int?                @map("amount_minor")
+  currency     String              @default("RUB")
+  startNumber  String?             @map("start_number")
+  gearKitId    String?             @map("gear_kit_id")
+  boatId       String?             @map("boat_id")
+  idempotencyKey String?           @unique @map("idempotency_key")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  tournament Tournament           @relation(fields: [tournamentId], references: [id])
+  owner      User                 @relation("RegistrationOwner", fields: [ownerId], references: [id])
+  gearKit    GearKit?             @relation(fields: [gearKitId], references: [id])
+  boat       Boat?                @relation(fields: [boatId], references: [id])
+  members    RegistrationMember[]
+  payments   Payment[]
+  admissions Admission[]
+
+  @@unique([tournamentId, ownerId])
+  @@index([tournamentId, status])
+  @@map("registrations")
+}
+
+model RegistrationMember {
+  id               String           @id @default(uuid())
+  registrationId   String           @map("registration_id")
+  userId           String?          @map("user_id")
+  invitedPhone     String?          @map("invited_phone")
+  role             MemberRole
+  invitationStatus InvitationStatus @default(PENDING) @map("invitation_status")
+  respondedAt      DateTime?        @map("responded_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@map("registration_members")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  registrationId String        @map("registration_id")
+  provider       String
+  providerId     String?       @map("provider_id")
+  status         PaymentStatus @default(PENDING)
+  amountMinor    Int           @map("amount_minor")
+  currency       String        @default("RUB")
+  idempotencyKey String        @unique @map("idempotency_key")
+  paidAt         DateTime?     @map("paid_at")
+  refundedAt     DateTime?     @map("refunded_at")
+  rawWebhook     Json?         @map("raw_webhook")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id])
+
+  @@map("payments")
+}
+
+/// Допуск: проверка лодки, документов, возраста и т.д.
+model Admission {
+  id             String   @id @default(uuid())
+  registrationId String   @map("registration_id")
+  type           String
+  status         String   // PENDING / APPROVED / REJECTED
+  checkedBy      String?  @map("checked_by")
+  note           String?
+  checkedAt      DateTime? @map("checked_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@map("admissions")
+}
+
+model WaitlistEntry {
+  id           String   @id @default(uuid())
+  tournamentId String   @map("tournament_id")
+  userId       String   @map("user_id")
+  position     Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@map("waitlist_entries")
+}
+
+// ───────────────────────── Соревнование ─────────────────────────
+
+/// Уникальный маркер турнира на фото — защита от подмены снимков.
+model CompetitionMarker {
+  id           String   @id @default(uuid())
+  tournamentId String   @map("tournament_id")
+  code         String
+  validFrom    DateTime @map("valid_from")
+  validTo      DateTime @map("valid_to")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, code])
+  @@map("competition_markers")
+}
+
+enum ResultStatus {
+  DRAFT
+  UPLOADING
+  SUBMITTED
+  AUTO_CHECKED
+  PENDING_JUDGE
+  ACCEPTED
+  NEEDS_RESUBMISSION
+  REJECTED
+  UNDER_PROTEST
+  CORRECTED
+}
+
+model Result {
+  id            String       @id @default(uuid())
+  tournamentId  String       @map("tournament_id")
+  participantId String       @map("participant_id")
+  /// Идемпотентность при плохой связи: клиентский UUID черновика.
+  clientId      String       @map("client_id")
+  speciesId     String       @map("species_id")
+  lengthMm      Int?         @map("length_mm")
+  weightG       Int?         @map("weight_g")
+  markerCode    String       @map("marker_code")
+  status        ResultStatus @default(DRAFT)
+  capturedAt    DateTime     @map("captured_at")
+  submittedAt   DateTime?    @map("submitted_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  tournament  Tournament      @relation(fields: [tournamentId], references: [id])
+  participant User            @relation(fields: [participantId], references: [id])
+  species     FishSpecies     @relation(fields: [speciesId], references: [id])
+  media       ResultMedia[]
+  decisions   JudgeDecision[]
+  corrections ResultCorrection[]
+
+  @@unique([tournamentId, participantId, clientId])
+  @@index([tournamentId, status])
+  @@map("results")
+}
+
+model ResultMedia {
+  id        String   @id @default(uuid())
+  resultId  String   @map("result_id")
+  fileId    String   @map("file_id")
+  checksum  String
+  /// EXIF-время, устройство и т.п. — только для судейства, не публикуется.
+  metadata  Json?
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  file   File   @relation(fields: [fileId], references: [id])
+
+  @@map("result_media")
+}
+
+enum JudgeDecisionKind {
+  ACCEPT
+  REJECT
+  REQUEST_RESUBMISSION
+}
+
+model JudgeDecision {
+  id        String            @id @default(uuid())
+  resultId  String            @map("result_id")
+  judgeId   String            @map("judge_id")
+  decision  JudgeDecisionKind
+  lengthMm  Int?              @map("length_mm")
+  weightG   Int?              @map("weight_g")
+  reason    String?
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  judge  User   @relation(fields: [judgeId], references: [id])
+
+  @@index([resultId, createdAt])
+  @@map("judge_decisions")
+}
+
+/// После FINALIZED результат меняется только корректирующей записью с автором и причиной.
+model ResultCorrection {
+  id        String   @id @default(uuid())
+  resultId  String   @map("result_id")
+  authorId  String   @map("author_id")
+  before    Json
+  after     Json
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  result Result @relation(fields: [resultId], references: [id])
+
+  @@map("result_corrections")
+}
+
+enum ProtestStatus {
+  OPEN
+  UNDER_REVIEW
+  UPHELD
+  DISMISSED
+  WITHDRAWN
+}
+
+model Protest {
+  id           String        @id @default(uuid())
+  tournamentId String        @map("tournament_id")
+  authorId     String        @map("author_id")
+  targetType   String        @map("target_type")
+  targetId     String        @map("target_id")
+  text         String
+  status       ProtestStatus @default(OPEN)
+  deadlineAt   DateTime      @map("deadline_at")
+  resolvedBy   String?       @map("resolved_by")
+  resolution   String?
+  resolvedAt   DateTime?     @map("resolved_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+  author     User       @relation(fields: [authorId], references: [id])
+
+  @@index([tournamentId, status])
+  @@map("protests")
+}
+
+model LeaderboardSnapshot {
+  id           String   @id @default(uuid())
+  tournamentId String   @map("tournament_id")
+  version      Int
+  payload      Json
+  isFinal      Boolean  @default(false) @map("is_final")
+  generatedAt  DateTime @default(now()) @map("generated_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, version])
+  @@map("leaderboard_snapshots")
+}
+
+// ───────────────────────── Рейтинг ─────────────────────────
+
+/// Версионируемые правила сезона; форма JSON — RankingRules из @sindikat/domain.
+model RankingRules {
+  id         String     @id @default(uuid())
+  seasonId   String     @map("season_id")
+  discipline Discipline?
+  version    String
+  payload    Json
+  activeFrom DateTime   @map("active_from")
+
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@unique([seasonId, discipline, version])
+  @@map("ranking_rules")
+}
+
+enum LedgerEventType {
+  TOURNAMENT_RESULT
+  PROTEST_CORRECTION
+  MANUAL_ADJUSTMENT
+  BONUS
+  PENALTY
+  REVERSAL
+}
+
+/// Неизменяемый журнал начислений. Таблица рейтинга — проекция этого журнала.
+model RankingLedger {
+  id               String          @id @default(uuid())
+  userId           String          @map("user_id")
+  seasonId         String          @map("season_id")
+  discipline       Discipline
+  tournamentId     String?         @map("tournament_id")
+  type             LedgerEventType
+  delta            Decimal         @db.Decimal(10, 2)
+  rulesVersion     String          @map("rules_version")
+  breakdown        Json?
+  reason           String?
+  authorId         String?         @map("author_id")
+  reversesLedgerId String?         @map("reverses_ledger_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  user       User        @relation(fields: [userId], references: [id])
+  season     Season      @relation(fields: [seasonId], references: [id])
+  tournament Tournament? @relation(fields: [tournamentId], references: [id])
+
+  @@index([seasonId, discipline, userId])
+  @@map("ranking_ledger")
+}
+
+/// Вычисляемая проекция; пересобирается из ranking_ledger.
+model RankingEntry {
+  userId     String     @map("user_id")
+  seasonId   String     @map("season_id")
+  discipline Discipline
+  points     Decimal    @db.Decimal(10, 2)
+  rank       Int
+  starts     Int
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@id([userId, seasonId, discipline])
+  @@index([seasonId, discipline, rank])
+  @@map("ranking_entries")
+}
+
+// ───────────────────────── Уведомления и аудит ─────────────────────────
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  kind      String
+  title     String
+  body      String
+  payload   Json?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  before     Json?
+  after      Json?
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+// ───────────────────────── Community (handoff §4.3, этап 5 — минимальное ядро) ─────────────────────────
+
+enum ChannelKind {
+  OFFICIAL
+  LOCAL
+}
+
+model Channel {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  name        String
+  description String?
+  kind        ChannelKind @default(LOCAL)
+  city        String?
+  ownerId     String?     @map("owner_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  rubrics ChannelRubric[]
+  members ChannelMember[]
+  posts   Post[]
+
+  @@map("channels")
+}
+
+model ChannelRubric {
+  id        String @id @default(uuid())
+  channelId String @map("channel_id")
+  name      String
+  sortOrder Int    @default(0) @map("sort_order")
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  posts   Post[]
+
+  @@unique([channelId, name])
+  @@map("channel_rubrics")
+}
+
+model ChannelMember {
+  channelId String   @map("channel_id")
+  userId    String   @map("user_id")
+  role      String   @default("MEMBER") // MEMBER / ADMIN / OWNER
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+  @@map("channel_members")
+}
+
+model Post {
+  id        String    @id @default(uuid())
+  channelId String    @map("channel_id")
+  rubricId  String?   @map("rubric_id")
+  authorId  String    @map("author_id")
+  title     String
+  text      String
+  photoFileId String? @map("photo_file_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  channel  Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  rubric   ChannelRubric? @relation(fields: [rubricId], references: [id], onDelete: SetNull)
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@index([channelId, createdAt])
+  @@map("posts")
+}
+
+model PostLike {
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id        String    @id @default(uuid())
+  postId    String    @map("post_id")
+  authorId  String    @map("author_id")
+  text      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@map("post_comments")
+}
+
+// ───────────────────────── Операционка организатора (прототип organizer-view) ─────────────────────────
+
+/// Чек-лист допусков, бюджет и партнёрские пакеты турнира. JSON — структура редактируется в кабинете, в запросах не участвует.
+model TournamentOps {
+  tournamentId String   @id @map("tournament_id")
+  /// [{ key, title, note, status: 'DONE'|'TODO'|'NA' }]
+  checklist    Json     @default("[]")
+  /// [{ title, amountMinor, kind: 'INCOME'|'EXPENSE' }]
+  budget       Json     @default("[]")
+  /// [{ title, description, priceMinor|null, status }]
+  partners     Json     @default("[]")
+  prizeFundMinor Int?   @map("prize_fund_minor")
+  notes        String?
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("tournament_ops")
+}
+
+// ───────────────────────── Trips & Clubs (handoff §4.3) ─────────────────────────
+
+model Trip {
+  id        String    @id @default(uuid())
+  authorId  String    @map("author_id")
+  title     String
+  place     String
+  startsAt  DateTime  @map("starts_at")
+  seats     Int       @default(2)
+  details   String?
+  discipline Discipline?
+  createdAt DateTime  @default(now()) @map("created_at")
+  cancelledAt DateTime? @map("cancelled_at")
+
+  members TripMember[]
+
+  @@index([startsAt])
+  @@map("trips")
+}
+
+model TripMember {
+  tripId    String   @map("trip_id")
+  userId    String   @map("user_id")
+  status    String   @default("REQUESTED") // REQUESTED / ACCEPTED / DECLINED
+  createdAt DateTime @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@id([tripId, userId])
+  @@map("trip_members")
+}
+
+model Club {
+  id         String     @id @default(uuid())
+  slug       String     @unique
+  name       String
+  city       String?
+  discipline Discipline
+  recruiting Boolean    @default(true)
+  captainId  String     @map("captain_id")
+  foundedYear Int       @map("founded_year")
+  description String?
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  members ClubMember[]
+  slots   ClubSlot[]
+
+  @@map("clubs")
+}
+
+model ClubMember {
+  clubId    String   @map("club_id")
+  userId    String   @map("user_id")
+  role      String   @default("APPLICANT") // CAPTAIN / ATHLETE / APPLICANT
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@id([clubId, userId])
+  @@map("club_members")
+}
+
+/// Открытые позиции клуба («ищем второго номера»)
+model ClubSlot {
+  id        String   @id @default(uuid())
+  clubId    String   @map("club_id")
+  title     String
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@map("club_slots")
+}

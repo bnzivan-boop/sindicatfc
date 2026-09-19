@@ -1,0 +1,62 @@
+# Локальная инфраструктура для разработки (см. docs/sindikat-technical-handoff.md, раздел 4.1)
+# Порты сдвинуты (5433/6380/9010), чтобы не конфликтовать с другими проектами на машине.
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: sindikat-postgres
+    environment:
+      POSTGRES_USER: sindikat
+      POSTGRES_PASSWORD: sindikat
+      # Базу `sindikat` создаёт prisma migrate из чистого шаблона — так расширения
+      # ставятся миграцией, а не init-скриптом образа, и drift не возникает.
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sindikat -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: sindikat-redis
+    ports:
+      - "6380:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: sindikat-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: sindikat
+      MINIO_ROOT_PASSWORD: sindikat-secret
+    ports:
+      - "9010:9000"
+      - "9011:9001"
+    volumes:
+      - minio-data:/data
+
+  # Однократно создаёт бакеты при старте
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      mc alias set local http://minio:9000 sindikat sindikat-secret;
+      mc mb -p local/sindikat-media;
+      mc mb -p local/sindikat-private;
+      exit 0;
+      "
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

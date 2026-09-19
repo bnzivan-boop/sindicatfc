@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: sindikat
+          POSTGRES_PASSWORD: sindikat
+          POSTGRES_DB: postgres
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U sindikat -d postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://sindikat:sindikat@127.0.0.1:5433/sindikat?schema=public
+      REDIS_URL: redis://localhost:6380
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      S3_ENDPOINT: http://localhost:9010
+      S3_ACCESS_KEY: ci
+      S3_SECRET_KEY: ci
+      S3_BUCKET_MEDIA: media
+      S3_BUCKET_PRIVATE: private
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @sindikat/domain build
+      - run: pnpm --filter @sindikat/api prisma:generate
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter @sindikat/api exec prisma migrate deploy
+      - run: pnpm build

@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Синдикат",
+    "slug": "sindikat",
+    "scheme": "sindikat",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ru.sindikat.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Камера нужна для фотофиксации улова на официальной линейке.",
+        "NSLocationWhenInUseUsageDescription": "Геолокация нужна для трофеев и турнирных зон; точные координаты не публикуются без вашего согласия."
+      }
+    },
+    "android": {
+      "package": "ru.sindikat.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f1210",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,23 @@
+import { TournamentStatus as S } from '../enums/tournament.js';
+import { defineStateMachine } from './machine.js';
+
+/**
+ * handoff 7.1:
+ * DRAFT → INTERNAL_REVIEW → PUBLISHED → REGISTRATION_OPEN → REGISTRATION_CLOSED
+ *   → LIVE → JUDGING → FINALIZED → ARCHIVED
+ * Дополнительно: POSTPONED, CANCELLED.
+ * После FINALIZED результаты меняются только корректирующей записью.
+ */
+export const tournamentMachine = defineStateMachine<S>('Tournament', S.DRAFT, {
+  DRAFT: [S.INTERNAL_REVIEW, S.CANCELLED],
+  INTERNAL_REVIEW: [S.DRAFT, S.PUBLISHED, S.CANCELLED],
+  PUBLISHED: [S.REGISTRATION_OPEN, S.POSTPONED, S.CANCELLED],
+  REGISTRATION_OPEN: [S.REGISTRATION_CLOSED, S.POSTPONED, S.CANCELLED],
+  REGISTRATION_CLOSED: [S.LIVE, S.REGISTRATION_OPEN, S.POSTPONED, S.CANCELLED],
+  LIVE: [S.JUDGING, S.CANCELLED],
+  JUDGING: [S.FINALIZED],
+  FINALIZED: [S.ARCHIVED],
+  ARCHIVED: [],
+  POSTPONED: [S.PUBLISHED, S.REGISTRATION_OPEN, S.CANCELLED],
+  CANCELLED: [],
+});

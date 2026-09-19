@@ -1,0 +1,24 @@
+{
+  "name": "sindikat",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Синдикат — рыболовная турнирная лига: мобильное приложение, web-кабинет и API",
+  "packageManager": "pnpm@11.22.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:api": "pnpm --filter @sindikat/api start:dev",
+    "dev:web": "pnpm --filter @sindikat/web dev",
+    "dev:mobile": "pnpm --filter @sindikat/mobile start",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @sindikat/api prisma:migrate",
+    "db:generate": "pnpm --filter @sindikat/api prisma:generate"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@sindikat/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Общая доменная модель: перечисления, статусные машины, формула рейтинга, схемы DTO",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "echo 'lint: domain has no linter configured yet'"
+  },
+  "dependencies": {
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.4"
+  },
+  "files": [
+    "dist"
+  ]
+}

@@ -1,0 +1,242 @@
+[
+ {
+  "month": 2,
+  "day": 6,
+  "type": "ice",
+  "title": "Ice Mormyshka Sprint",
+  "sub": "мормышка · личный зачёт",
+  "level": "sprint"
+ },
+ {
+  "month": 2,
+  "day": 13,
+  "type": "ice",
+  "title": "Ice Perch Sprint",
+  "sub": "блесна и балансир",
+  "level": "sprint"
+ },
+ {
+  "month": 2,
+  "day": 20,
+  "type": "ice",
+  "title": "Ice Predator Open",
+  "sub": "партнёрская зона",
+  "level": "open ×2"
+ },
+ {
+  "month": 2,
+  "day": 27,
+  "type": "ice",
+  "title": "Ice Team Sprint",
+  "sub": "парный этап",
+  "level": "sprint"
+ },
+ {
+  "month": 3,
+  "day": 6,
+  "type": "trout",
+  "title": "Trout Mini League #1",
+  "sub": "короткие дуэли",
+  "level": "sprint"
+ },
+ {
+  "month": 3,
+  "day": 13,
+  "type": "trout",
+  "title": "Trout Qualifier",
+  "sub": "отбор в Major",
+  "level": "qualifier"
+ },
+ {
+  "month": 3,
+  "day": 20,
+  "type": "trout",
+  "title": "Area Trout Major Spring",
+  "sub": "группы + плей-офф",
+  "level": "major ×3"
+ },
+ {
+  "month": 3,
+  "day": 27,
+  "type": "trout",
+  "title": "Trout Pairs Sprint",
+  "sub": "парный этап",
+  "level": "sprint"
+ },
+ {
+  "month": 7,
+  "day": 3,
+  "type": "street",
+  "title": "Street Perch Sprint",
+  "sub": "окунь · ранний старт",
+  "level": "sprint"
+ },
+ {
+  "month": 7,
+  "day": 10,
+  "type": "street",
+  "title": "Microjig Evening",
+  "sub": "вечерний этап",
+  "level": "sprint"
+ },
+ {
+  "month": 7,
+  "day": 17,
+  "type": "street",
+  "title": "Urban Street Open",
+  "sub": "Москва-река · регистрация",
+  "level": "open ×2"
+ },
+ {
+  "month": 7,
+  "day": 24,
+  "type": "street",
+  "title": "River Walk Qualifier",
+  "sub": "маршрут 3–8 км",
+  "level": "qualifier"
+ },
+ {
+  "month": 7,
+  "day": 31,
+  "type": "float",
+  "title": "Float Sprint",
+  "sub": "смена секторов",
+  "level": "sprint"
+ },
+ {
+  "month": 8,
+  "day": 7,
+  "type": "feeder",
+  "title": "Feeder Qualifier",
+  "sub": "донная удочка",
+  "level": "qualifier"
+ },
+ {
+  "month": 8,
+  "day": 14,
+  "type": "feeder",
+  "title": "Feeder Open",
+  "sub": "общий вес",
+  "level": "open ×2"
+ },
+ {
+  "month": 8,
+  "day": 21,
+  "type": "float",
+  "title": "Float Sprint",
+  "sub": "короткие туры",
+  "level": "sprint"
+ },
+ {
+  "month": 8,
+  "day": 28,
+  "type": "street",
+  "title": "City River Open",
+  "sub": "речной маршрут",
+  "level": "open ×2"
+ },
+ {
+  "month": 9,
+  "day": 4,
+  "type": "street",
+  "title": "Away Water Open",
+  "sub": "лагерь и трансфер",
+  "level": "open ×2"
+ },
+ {
+  "month": 9,
+  "day": 11,
+  "type": "street",
+  "title": "Street Species Sprint",
+  "sub": "многовидовой зачёт",
+  "level": "sprint"
+ },
+ {
+  "month": 9,
+  "day": 18,
+  "type": "jig",
+  "title": "Shore Jig Qualifier",
+  "sub": "судак и щука",
+  "level": "qualifier"
+ },
+ {
+  "month": 9,
+  "day": 25,
+  "type": "jig",
+  "title": "Shore Jig Major",
+  "sub": "3 крупнейшие рыбы",
+  "level": "major ×3"
+ },
+ {
+  "month": 10,
+  "day": 2,
+  "type": "jig",
+  "title": "Jig Sprint",
+  "sub": "вне зимовальных ям",
+  "level": "sprint"
+ },
+ {
+  "month": 10,
+  "day": 9,
+  "type": "jig",
+  "title": "River Predator Qualifier",
+  "sub": "отбор на Major",
+  "level": "qualifier"
+ },
+ {
+  "month": 10,
+  "day": 16,
+  "type": "jig",
+  "title": "City River Major",
+  "sub": "щука и судак",
+  "level": "major ×3"
+ },
+ {
+  "month": 10,
+  "day": 23,
+  "type": "trout",
+  "title": "Trout Qualifier Autumn",
+  "sub": "дуэльный отбор",
+  "level": "qualifier"
+ },
+ {
+  "month": 10,
+  "day": 30,
+  "type": "trout",
+  "title": "Area Trout Open Autumn",
+  "sub": "осенний open",
+  "level": "open ×2"
+ },
+ {
+  "month": 11,
+  "day": 6,
+  "type": "trout",
+  "title": "Trout Sprint",
+  "sub": "рейтинговый этап",
+  "level": "sprint"
+ },
+ {
+  "month": 11,
+  "day": 13,
+  "type": "trout",
+  "title": "Area Trout Major Final",
+  "sub": "гранд-финал",
+  "level": "final ×3"
+ },
+ {
+  "month": 11,
+  "day": 20,
+  "type": "street",
+  "title": "Last Cast Street Sprint",
+  "sub": "закрытие street",
+  "level": "sprint"
+ },
+ {
+  "month": 11,
+  "day": 27,
+  "type": "trout",
+  "title": "Trout Team Sprint",
+  "sub": "командное закрытие",
+  "level": "sprint"
+ }
+]

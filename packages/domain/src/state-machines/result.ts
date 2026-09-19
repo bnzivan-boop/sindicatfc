@@ -1,0 +1,21 @@
+import { ResultStatus as S } from '../enums/result.js';
+import { defineStateMachine } from './machine.js';
+
+/**
+ * handoff 7.3:
+ * DRAFT → UPLOADING → SUBMITTED → AUTO_CHECKED → PENDING_JUDGE → ACCEPTED
+ * Ветки: NEEDS_RESUBMISSION, REJECTED, UNDER_PROTEST, CORRECTED.
+ * Судья видит только полностью загруженные результаты (≥ SUBMITTED).
+ */
+export const resultMachine = defineStateMachine<S>('Result', S.DRAFT, {
+  DRAFT: [S.UPLOADING],
+  UPLOADING: [S.SUBMITTED, S.DRAFT],
+  SUBMITTED: [S.AUTO_CHECKED, S.PENDING_JUDGE, S.REJECTED],
+  AUTO_CHECKED: [S.PENDING_JUDGE, S.REJECTED],
+  PENDING_JUDGE: [S.ACCEPTED, S.REJECTED, S.NEEDS_RESUBMISSION],
+  NEEDS_RESUBMISSION: [S.UPLOADING, S.REJECTED],
+  ACCEPTED: [S.UNDER_PROTEST, S.CORRECTED],
+  REJECTED: [S.UNDER_PROTEST],
+  UNDER_PROTEST: [S.ACCEPTED, S.REJECTED, S.CORRECTED],
+  CORRECTED: [S.UNDER_PROTEST],
+});
