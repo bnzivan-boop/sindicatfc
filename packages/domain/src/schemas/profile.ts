@@ -6,6 +6,8 @@ import { idSchema } from './common.js';
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(60).optional(),
   cityId: idSchema.nullable().optional(),
+  /** Город свободным текстом: сервер находит или создаёт запись в справочнике. */
+  cityName: z.string().min(2).max(60).nullable().optional(),
   experienceYears: z.number().int().min(0).max(80).nullable().optional(),
   bio: z.string().max(500).nullable().optional(),
   targetSpeciesIds: z.array(idSchema).max(20).optional(),

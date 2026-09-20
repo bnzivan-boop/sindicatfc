@@ -65,8 +65,17 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfile) {
-    const { targetSpeciesIds, onboardingCompleted, ...profile } = dto;
+    const { targetSpeciesIds, onboardingCompleted, cityName, ...profile } = dto;
     const completion = onboardingCompleted ? { onboardingCompletedAt: new Date() } : {};
+    // город свободным текстом → нормализуем в справочник (без дублей по регистру/пробелам)
+    if (cityName !== undefined) {
+      const name = cityName?.trim().replace(/\s+/g, ' ');
+      if (!name) profile.cityId = null;
+      else {
+        const city = (await this.prisma.city.findFirst({ where: { name: { equals: name, mode: 'insensitive' } } })) ?? (await this.prisma.city.create({ data: { name: name[0]!.toUpperCase() + name.slice(1) } }));
+        profile.cityId = city.id;
+      }
+    }
     return this.prisma.$transaction(async (tx) => {
       await tx.userProfile.upsert({
         where: { userId },
