@@ -12,7 +12,10 @@ const prisma = new PrismaClient();
 
 
 /** Демо-участники из прототипа. Первый — «я» (Алексей Смирнов, #12 в street). */
-const USERS: Array<{ phone: string; name: string; city: string; exp: number; disciplines: Discipline[]; kit?: string; bio?: string }> = [
+/** Аккаунты, которые получают полный набор «моих» данных (заявки, live, уловы, уведомления). */
+const HEROES = ['+79990000002', '+79637686719'];
+
+const USERS: Array<{ phone: string; name: string; city: string; exp: number; disciplines: Discipline[]; kit?: string; bio?: string; keepProfile?: boolean }> = [
   { phone: '+79990000002', name: 'Алексей Смирнов', city: 'Москва', exp: 12, disciplines: ['STREET', 'AREA_TROUT', 'FEEDER'], kit: 'Graphiteleader Corto 0,6–8 г', bio: 'Городской стрит по Москве-реке, форель по выходным.' },
   { phone: '+79990000003', name: 'Илья Сафин', city: 'Москва', exp: 15, disciplines: ['STREET', 'SHORE_JIG'], kit: 'Major Craft Finetail 1–7 г' },
   { phone: '+79990000004', name: 'Денис Крылов', city: 'Химки', exp: 9, disciplines: ['STREET', 'SHORE_JIG', 'BOAT'], kit: 'Daiwa Presso 0,4–5 г' },
@@ -26,6 +29,7 @@ const USERS: Array<{ phone: string; name: string; city: string; exp: number; dis
   { phone: '+79990000012', name: 'Тимур Асланов', city: 'Люберцы', exp: 3, disciplines: ['STREET'], kit: 'Crazy Fish Arion 0,5–6 г' },
   { phone: '+79990000013', name: 'Ольга Зайцева', city: 'Москва', exp: 5, disciplines: ['AREA_TROUT'], kit: 'Nories Spike Arrow 0,6–4 г' },
   { phone: '+79990000020', name: 'Виктор Судейкин', city: 'Москва', exp: 25, disciplines: ['STREET'] }, // судья
+  { phone: '+79637686719', name: 'Иван', city: 'Москва', exp: 8, disciplines: ['STREET', 'SHORE_JIG', 'AREA_TROUT'], kit: 'Graphiteleader Bellezza 0,5–5 г', keepProfile: true }, // владелец продукта
 ];
 
 async function main() {
@@ -50,7 +54,8 @@ async function main() {
       update: {},
     });
     userIds.set(u.phone, user.id);
-    await prisma.userProfile.upsert({ where: { userId: user.id }, create: { userId: user.id, displayName: u.name, cityId: cityIds.get(u.city), experienceYears: u.exp, bio: u.bio, waterTypes: ['RIVER', 'RESERVOIR'], onboardingCompletedAt: new Date() }, update: { displayName: u.name, cityId: cityIds.get(u.city), experienceYears: u.exp, onboardingCompletedAt: new Date() } });
+    await prisma.userProfile.upsert({ where: { userId: user.id }, create: { userId: user.id, displayName: u.name, cityId: cityIds.get(u.city), experienceYears: u.exp, bio: u.bio, waterTypes: ['RIVER', 'RESERVOIR'], onboardingCompletedAt: new Date() }, update: u.keepProfile ? { onboardingCompletedAt: new Date() } : { displayName: u.name, cityId: cityIds.get(u.city), experienceYears: u.exp, onboardingCompletedAt: new Date() } });
+    // дисциплины — из seed (для героев тоже: иначе очки сезона будут в «пустой» дисциплине); имя/город keepProfile не трогает
     await prisma.userDiscipline.deleteMany({ where: { userId: user.id } });
     await prisma.userDiscipline.createMany({ data: u.disciplines.map((discipline, i) => ({ userId: user.id, discipline, priority: i + 1 })) });
     if (u.kit && !(await prisma.gearKit.findFirst({ where: { ownerId: user.id, name: 'Основной street' } }))) {
@@ -73,8 +78,11 @@ async function main() {
   const me = userIds.get('+79990000002')!;
 
   // ── лодка и дневник для «меня»
-  if (!(await prisma.boat.findFirst({ where: { ownerId: me } }))) {
-    await prisma.boat.create({ data: { ownerId: me, type: 'PVC', customName: 'Gladiator E330', lengthCm: 330, seats: 3, capacityKg: 450, equipment: { motor: { customBrand: 'Tohatsu', customModel: 'M9.8', powerHp: 9.8 }, sonar: 'Garmin Striker 4', trailer: false }, availableForTeamTrips: true } });
+  for (const hero of HEROES) {
+    const hid = userIds.get(hero)!;
+    if (!(await prisma.boat.findFirst({ where: { ownerId: hid } }))) {
+      await prisma.boat.create({ data: { ownerId: hid, type: 'PVC', customName: 'Gladiator E330', lengthCm: 330, seats: 3, capacityKg: 450, equipment: { motor: { customBrand: 'Tohatsu', customModel: 'M9.8', powerHp: 9.8 }, sonar: 'Garmin Striker 4', trailer: false }, availableForTeamTrips: true } });
+    }
   }
   const CATCHES: Array<[string, number, number, string, Date, boolean]> = [
     ['perch', 340, 520, 'Вечер, Лужнецкая набережная, бровка на течении — поклёвка на паузе.', new Date('2026-08-12T17:40:00Z'), true],
@@ -83,10 +91,12 @@ async function main() {
     ['chub', 310, 380, 'Голавль на крэнк под нависшим кустом.', new Date('2026-06-20T08:00:00Z'), false],
     ['perch', 250, 210, 'Тренировка перед стартом, микроджиг.', new Date('2026-09-15T16:00:00Z'), false],
   ];
-  if ((await prisma.catch.count({ where: { ownerId: me } })) === 0) {
-    const kit = await prisma.gearKit.findFirst({ where: { ownerId: me } });
+  for (const hero of HEROES) {
+    const hid = userIds.get(hero)!;
+    if ((await prisma.catch.count({ where: { ownerId: hid } })) > 0) continue;
+    const kit = await prisma.gearKit.findFirst({ where: { ownerId: hid } });
     for (const [slug, lengthMm, weightG, description, caughtAt, trophy] of CATCHES) {
-      const c = await prisma.catch.create({ data: { ownerId: me, speciesId: species[slug]!, lengthMm, weightG, description, caughtAt, gearLink: { create: { gearKitId: kit?.id } }, location: { create: { privacy: 'WATERBODY_ONLY' } } } });
+      const c = await prisma.catch.create({ data: { ownerId: hid, speciesId: species[slug]!, lengthMm: lengthMm + (hero === HEROES[0] ? 0 : 15), weightG, description, caughtAt, gearLink: { create: { gearKitId: kit?.id } }, location: { create: { privacy: 'WATERBODY_ONLY' } } } });
       if (trophy) await prisma.trophy.create({ data: { catchId: c.id, status: 'PUBLISHED', isPersonalRecord: true, recordType: 'LENGTH' } });
     }
   }
@@ -163,12 +173,14 @@ async function main() {
     // участники: у кого дисциплина в приоритетах + «я» почти везде; 8–12 человек
     // «я» — только в своих дисциплинах и примерно в каждом втором старте
     const isLiveNow = t.startsAt >= LIVE_CUTOFF && t.startsAt <= now;
-    const meIn = isLiveNow || (players[0]!.disciplines.includes(t.discipline) && rnd() < 0.55); // в live-турнире «я» всегда — для демо отправки рыбы
-    const others = players.slice(1);
+    // «герои» — в live-турнире всегда (для демо отправки рыбы), иначе примерно в каждом втором старте своих дисциплин
+    const heroes = players.filter((u) => HEROES.includes(u.phone));
+    const heroesIn = heroes.filter((u) => isLiveNow || (u.disciplines.includes(t.discipline) && rnd() < 0.55));
+    const others = players.filter((u) => !HEROES.includes(u.phone));
     const pool = others.filter((u) => u.disciplines.includes(t.discipline));
     const extra = others.filter((u) => !pool.includes(u)).sort(() => rnd() - 0.5);
     const count = Math.min(t.capacity, 8 + Math.floor(rnd() * 5));
-    const roster = [...(meIn ? [players[0]!] : []), ...pool, ...extra].slice(0, count);
+    const roster = [...heroesIn, ...pool, ...extra].slice(0, count);
 
     if (!isPast && !isLive) {
       await prisma.tournament.update({ where: { id: t.id }, data: { status: 'REGISTRATION_OPEN', registrationOpensAt: new Date(now.getTime() - 14 * 86_400_000), registrationClosesAt: new Date(t.startsAt.getTime() - 2 * 86_400_000) } });
@@ -201,7 +213,7 @@ async function main() {
     const entries: Array<{ participantId: string; displayName: string; score: number; countedFish: number; biggestFishMm: number | null }> = [];
     for (const u of roster) {
       const uid = userIds.get(u.phone)!;
-      const skill = 0.55 + rnd() * 0.45 - (u.phone === '+79990000002' ? 0.05 : 0);
+      const skill = 0.55 + rnd() * 0.45 - (HEROES.includes(u.phone) ? 0.05 : 0);
       if (t.scoringMode === 'LENGTH_SUM') {
         const n = Math.max(1, Math.round(fishCount * skill * (isLive ? 0.6 : 1)));
         const lengths: Array<{ speciesId: string; lengthMm: number }> = [];
@@ -238,7 +250,7 @@ async function main() {
       }
     } else {
       // live: один результат «у судьи» и один «нужно новое фото» — для демо судейства
-      await prisma.result.create({ data: { tournamentId: t.id, participantId: me, clientId: 'seed-live-pending', speciesId: species[speciesFor[t.discipline][0]!]!, lengthMm: 470, markerCode: 'LIVE-01', status: 'PENDING_JUDGE', capturedAt: now, submittedAt: now } });
+      for (const h of heroes) await prisma.result.create({ data: { tournamentId: t.id, participantId: userIds.get(h.phone)!, clientId: `seed-live-pending-${h.phone}`, speciesId: species[speciesFor[t.discipline][0]!]!, lengthMm: 470, markerCode: 'LIVE-01', status: 'PENDING_JUDGE', capturedAt: now, submittedAt: now } });
       const resub = await prisma.result.create({ data: { tournamentId: t.id, participantId: userIds.get('+79990000012')!, clientId: 'seed-live-resub', speciesId: species[speciesFor[t.discipline][0]!]!, lengthMm: 420, markerCode: 'LIVE-01', status: 'NEEDS_RESUBMISSION', capturedAt: now, submittedAt: now } });
       await prisma.judgeDecision.create({ data: { resultId: resub.id, judgeId: judge, decision: 'REQUEST_RESUBMISSION', reason: 'маркер нечёткий — переснимите с маркером в кадре' } });
     }
@@ -263,12 +275,15 @@ async function main() {
 
   // ── «мои» заявки на будущее: одна оплаченная личная и одна парная в ожидании напарника
   const open = await prisma.tournament.findMany({ where: { status: 'REGISTRATION_OPEN' }, orderBy: { startsAt: 'asc' }, take: 2 });
-  if (open[0]) {
-    const reg = await prisma.registration.create({ data: { tournamentId: open[0].id, ownerId: me, format: 'SOLO', status: 'CONFIRMED', amountMinor: open[0].entryFeeMinor, idempotencyKey: `seed-me-${open[0].slug}`, members: { create: { userId: me, role: 'OWNER', invitationStatus: 'ACCEPTED', respondedAt: now } } } });
-    await prisma.payment.create({ data: { registrationId: reg.id, provider: 'stub', status: 'SUCCEEDED', paidAt: now, amountMinor: open[0].entryFeeMinor ?? 0, idempotencyKey: `seed-pay-${reg.id}` } });
-  }
-  if (open[1]) {
-    await prisma.registration.create({ data: { tournamentId: open[1].id, ownerId: me, format: 'PAIR', status: 'WAITING_MEMBERS', amountMinor: (open[1].entryFeeMinor ?? 0) * 2, idempotencyKey: `seed-me-${open[1].slug}`, members: { create: [{ userId: me, role: 'OWNER', invitationStatus: 'ACCEPTED', respondedAt: now }, { userId: userIds.get('+79990000008'), role: 'PARTNER', invitationStatus: 'PENDING' }] } } });
+  for (const hero of HEROES) {
+    const hid = userIds.get(hero)!;
+    if (open[0] && !(await prisma.registration.findUnique({ where: { tournamentId_ownerId: { tournamentId: open[0].id, ownerId: hid } } }))) {
+      const reg = await prisma.registration.create({ data: { tournamentId: open[0].id, ownerId: hid, format: 'SOLO', status: 'CONFIRMED', amountMinor: open[0].entryFeeMinor, idempotencyKey: `seed-${hero}-${open[0].slug}`, members: { create: { userId: hid, role: 'OWNER', invitationStatus: 'ACCEPTED', respondedAt: now } } } });
+      await prisma.payment.create({ data: { registrationId: reg.id, provider: 'stub', status: 'SUCCEEDED', paidAt: now, amountMinor: open[0].entryFeeMinor ?? 0, idempotencyKey: `seed-pay-${reg.id}` } });
+    }
+    if (open[1] && !(await prisma.registration.findUnique({ where: { tournamentId_ownerId: { tournamentId: open[1].id, ownerId: hid } } }))) {
+      await prisma.registration.create({ data: { tournamentId: open[1].id, ownerId: hid, format: 'PAIR', status: 'WAITING_MEMBERS', amountMinor: (open[1].entryFeeMinor ?? 0) * 2, idempotencyKey: `seed-${hero}-${open[1].slug}`, members: { create: [{ userId: hid, role: 'OWNER', invitationStatus: 'ACCEPTED', respondedAt: now }, { userId: userIds.get('+79990000008'), role: 'PARTNER', invitationStatus: 'PENDING' }] } } });
+    }
   }
 
   // ── сообщество: каналы, участники, посты (тексты — из прототипа community-view / channel-view)
@@ -343,8 +358,9 @@ async function main() {
   }
 
   // ── уведомления для «меня»
-  await prisma.notification.deleteMany({ where: { userId: me } });
-  {
+  for (const hero of HEROES) {
+    const me = userIds.get(hero)!;
+    await prisma.notification.deleteMany({ where: { userId: me } });
     await prisma.notification.createMany({
       data: [
         { userId: me, kind: 'result.accepted', title: 'Судак 47 см отправлен судье', body: 'Shore Jig Qualifier: результат в очереди проверки.', createdAt: new Date(Date.now() - 4 * 60_000) },
