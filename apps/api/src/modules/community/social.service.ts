@@ -39,11 +39,27 @@ export class SocialService {
     if (!t) throw new NotFoundException();
     if (t.authorId === userId) throw new BadRequestException('Вы организатор этого выезда');
     const existing = await this.prisma.tripMember.findUnique({ where: { tripId_userId: { tripId, userId } } });
+    if (existing?.status === 'INVITED') {
+      await this.prisma.tripMember.update({ where: { tripId_userId: { tripId, userId } }, data: { status: 'ACCEPTED' } });
+      const n = await this.names([userId]);
+      await this.notifications.send(t.authorId, 'registration.confirmed', `${n.get(userId)?.displayName ?? 'Участник'} едет с вами`, `${t.title} · ${t.place}`, { tripId });
+      return { status: 'ACCEPTED' };
+    }
     if (existing) { await this.prisma.tripMember.delete({ where: { tripId_userId: { tripId, userId } } }); return { status: null }; }
     await this.prisma.tripMember.create({ data: { tripId, userId } });
     const n = await this.names([userId]);
     await this.notifications.send(t.authorId, 'registration.invited', `${n.get(userId)?.displayName ?? 'Участник'} хочет присоединиться`, `${t.title} · ${t.place}`, { tripId });
     return { status: 'REQUESTED' };
+  }
+
+  async inviteToTrip(authorId: string, tripId: string, userId: string) {
+    const t = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!t || t.authorId !== authorId) throw new ForbiddenException();
+    if (userId === authorId) throw new BadRequestException();
+    await this.prisma.tripMember.upsert({ where: { tripId_userId: { tripId, userId } }, create: { tripId, userId, status: 'INVITED' }, update: {} });
+    const n = await this.names([authorId]);
+    await this.notifications.send(userId, 'trip.invited', `${n.get(authorId)?.displayName ?? 'Участник'} зовёт на рыбалку`, `${t.title} · ${t.place}`, { tripId });
+    return { status: 'INVITED' };
   }
 
   async decideTrip(authorId: string, tripId: string, dto: { userId: string; accept: boolean }) {

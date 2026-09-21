@@ -1,12 +1,13 @@
 import { goBack } from '../../src/navigation';
 import { DISCIPLINE_LABELS_RU } from '@sindikat/domain';
 import { router } from 'expo-router';
-import { ArrowLeft, ChevronRight, CircleDot, FishSymbol, Gem, NotebookPen, Sailboat, Shield, SquarePen, Trophy } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, CircleDot, FishSymbol, Gem, NotebookPen, Sailboat, Shield, SquarePen, Trophy, Users } from 'lucide-react-native';
 import { Image, Pressable, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { uploadTo } from '../../src/features/media/upload';
 import { useBoat, useGearKits } from '../../src/features/gear/useGear';
+import { useFriends } from '../../src/features/friends/useFriends';
 import { STATUS_RU as REG_STATUS, useMyRegistrations } from '../../src/features/registrations/useRegistrations';
 import { useLogout, useMe } from '../../src/auth/useAuth';
 import { Avatar, DeepCard, DetailTopBar, EventTag, fontFamily, InfoList, InfoRow, LimeButton, Page, Round, SectionHead, Stats, T, Track } from '../../src/components/ui';
@@ -32,6 +33,7 @@ export default function ProfileScreen() {
   const kits = useGearKits();
   const boat = useBoat();
   const regs = useMyRegistrations(!!me.data);
+  const friends = useFriends(!!me.data);
   const upcoming = (regs.data ?? []).filter((r) => !['FINISHED', 'CANCELLED', 'REFUNDED', 'REJECTED'].includes(r.status));
   const finished = (regs.data ?? []).filter((r) => r.status === 'FINISHED');
 
@@ -100,6 +102,7 @@ export default function ProfileScreen() {
       <SectionHead title="аккаунт" />
       <InfoList>
         <InfoRow icon={Trophy} label="турниры" value="мои заявки и история участий" onPress={() => router.push('/my-registrations')} trailing={<ChevronRight size={14} color={colors.muted} />} />
+        <InfoRow icon={Users} label={`друзья · ${friends.data?.friends.length ?? 0}`} value={friends.data?.incoming.length ? `${friends.data.incoming.length} новых заявок` : 'напарники, одноклубники, компания на рыбалку'} onPress={() => router.push('/friends')} trailing={friends.data?.incoming.length ? <EventTag>{String(friends.data.incoming.length)}</EventTag> : <ChevronRight size={14} color={colors.muted} />} />
         <InfoRow icon={NotebookPen} label="личное" value="дневник рыбалок и уловов" onPress={() => router.push('/diary')} trailing={<ChevronRight size={14} color={colors.muted} />} />
         <InfoRow icon={Shield} label="настройки" value="приватность и видимость снаряжения" onPress={() => router.push('/settings')} trailing={<ChevronRight size={14} color={colors.muted} />} />
         <InfoRow icon={Gem} label="подписка" value="Синдикат Premium" trailing={<EventTag>premium</EventTag>} />

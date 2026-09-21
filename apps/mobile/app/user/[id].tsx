@@ -10,9 +10,11 @@ import { useMe } from '../../src/auth/useAuth';
 import { Avatar, DeepCard, DetailTopBar, EventTag, FilterRow, fontFamily, InfoList, InfoRow, Page, Round, SectionHead, Stats, Surface, T } from '../../src/components/ui';
 import { goBack } from '../../src/navigation';
 import { whiteAlpha } from '../../src/theme/tokens';
+import { FriendButton } from '../../src/features/friends/FriendButton';
+import type { FriendState } from '../../src/features/friends/useFriends';
 import { useTheme } from '../../src/theme/useTheme';
 
-type Profile = Omit<PublicProfile, 'memberSince' | 'history'> & { memberSince: string; history: Array<Omit<PublicProfile['history'][number], 'startsAt'> & { startsAt: string }> };
+type Profile = Omit<PublicProfile, 'memberSince' | 'history'> & { memberSince: string; history: Array<Omit<PublicProfile['history'][number], 'startsAt'> & { startsAt: string }>; friendship: { state: FriendState; mutual: number } };
 type Sort = 'date' | 'species' | 'weight' | 'length';
 
 /** Публичный профиль (концепция «Отображение в приложении» + вкладка «Трофеи»). Без телефона, точных координат и документов. */
@@ -23,7 +25,7 @@ export default function PublicProfileScreen() {
   const [sort, setSort] = useState<Sort>('date');
   const [allHistory, setAllHistory] = useState(false);
   const profile = useQuery({ queryKey: ['public-profile', id], queryFn: () => api<Profile>(`/users/${id}`, { auth: false }), enabled: !!id });
-  const kits = useQuery({ queryKey: ['public-kits', id], queryFn: () => api<{ kits: Array<UpsertGearKit & { id: string }>; boat: { type: string; customName: string | null; lengthCm: number | null; seats: number | null; equipment: { motor?: { powerHp?: number } } | null } | null }>(`/users/${id}/gear-kits`, { auth: false }), enabled: !!id });
+  const kits = useQuery({ queryKey: ['public-kits', id], queryFn: () => api<{ kits: Array<UpsertGearKit & { id: string }>; boat: { type: string; customName: string | null; lengthCm: number | null; seats: number | null; equipment: { motor?: { powerHp?: number } } | null } | null; hiddenForFriends: number }>(`/users/${id}/gear-kits`, { auth: false }), enabled: !!id });
   const trophies = useQuery({ queryKey: ['public-trophies', id, sort], queryFn: () => api<TrophyCard[]>(`/users/${id}/trophies?sort=${sort}&order=desc`, { auth: false }), enabled: !!id });
 
   if (me.data?.id === id) { router.replace('/(tabs)/profile'); return null; }
@@ -49,16 +51,18 @@ export default function PublicProfileScreen() {
         </View>
         {p.bio ? <Text style={[fontFamily, { fontSize: 10, lineHeight: 15, color: whiteAlpha(75), marginTop: 12 }]}>{p.bio}</Text> : null}
       </DeepCard>
-      <View style={{ flexDirection: 'row', gap: 7, marginBottom: 6 }}>
-        <Pressable onPress={() => router.push('/community/messages')} style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 6, backgroundColor: colors.text, borderRadius: 11, padding: 11 }}><MessageCircle size={13} color={colors.bg} /><T size={9} color={colors.bg}>написать</T></Pressable>
-        <Pressable style={{ flex: 1, borderWidth: 1, borderColor: colors.line, borderRadius: 11, padding: 11, alignItems: 'center' }}><T size={9}>позвать на рыбалку</T></Pressable>
+      <View style={{ flexDirection: 'row', gap: 7, marginBottom: 6, alignItems: 'center' }}>
+        <View style={{ flex: 1 }}><FriendButton userId={p.id} state={p.friendship.state} mutual={p.friendship.mutual} /></View>
+        <Pressable onPress={() => router.push('/community/messages')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10 }}><MessageCircle size={13} color={colors.text} /><T size={10}>написать</T></Pressable>
+        <Pressable onPress={() => router.push({ pathname: '/community/create', params: { kind: 'trip', invite: p.id } })} style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10 }}><T size={10}>на рыбалку</T></Pressable>
       </View>
       <Stats items={[{ label: 'стартов', value: String(p.history.length) }, { label: 'подиумы', value: String(p.podiums) }, { label: 'победы', value: String(p.wins) }]} />
 
       {/* ── арсенал ── */}
       <SectionHead title="арсенал" tag={kits.data ? String(kits.data.kits.length + (kits.data.boat ? 1 : 0)) : undefined} />
       <InfoList>
-        {(kits.data?.kits ?? []).length === 0 && !kits.data?.boat && <InfoRow icon={FishSymbol} label="арсенал" value="комплекты скрыты или не добавлены" />}
+        {(kits.data?.kits ?? []).length === 0 && !kits.data?.boat && <InfoRow icon={FishSymbol} label="арсенал" value={kits.data?.hiddenForFriends ? `${kits.data.hiddenForFriends} комплект(а) видны только друзьям` : 'комплекты скрыты или не добавлены'} />}
+        {(kits.data?.kits.length ?? 0) > 0 && (kits.data?.hiddenForFriends ?? 0) > 0 && <InfoRow icon={FishSymbol} label="ещё" value={`${kits.data!.hiddenForFriends} комплект(а) видны только друзьям`} />}
         {(kits.data?.kits ?? []).map((k) => (
           <InfoRow key={k.id} icon={FishSymbol} label={`${DISCIPLINE_LABELS_RU[k.discipline].toLowerCase()} · ${k.isPrimary ? 'основной' : 'запасной'}`} value={[k.rod?.customBrand, k.rod?.customModel, k.rod?.lureTestMinG !== undefined ? `${k.rod.lureTestMinG}–${k.rod.lureTestMaxG} г` : null, k.reel?.customBrand ? `· ${k.reel.customBrand} ${k.reel.customModel ?? ''}` : null, k.mainLine?.peSize ? `· PE ${k.mainLine.peSize}` : null].filter(Boolean).join(' ') || k.name} />
         ))}

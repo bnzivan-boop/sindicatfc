@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { FriendsService } from '../friends/friends.service.js';
 
 const author = { include: { profile: { select: { displayName: true, city: { select: { name: true } } } } } } as const;
 
@@ -9,6 +10,7 @@ export class CommunityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly friends: FriendsService,
   ) {}
 
   async listChannels(viewerId?: string) {
@@ -45,9 +47,16 @@ export class CommunityService {
     return { joined: !existing, members: await this.prisma.channelMember.count({ where: { channelId } }) };
   }
 
-  async listPosts(viewerId: string | undefined, q: { limit: number; channelId?: string }) {
+  /** scope=friends: посты друзей и каналов, где я состою. */
+  async listPosts(viewerId: string | undefined, q: { limit: number; channelId?: string; scope?: 'all' | 'friends' }) {
+    let scoped: Record<string, unknown> = {};
+    if (q.scope === 'friends' && viewerId) {
+      const friendIds = await this.friends.friendIds(viewerId);
+      const myChannels = (await this.prisma.channelMember.findMany({ where: { userId: viewerId }, select: { channelId: true } })).map((m) => m.channelId);
+      scoped = { OR: [{ authorId: { in: friendIds } }, { channelId: { in: myChannels } }] };
+    }
     const rows = await this.prisma.post.findMany({
-      where: { deletedAt: null, channelId: q.channelId },
+      where: { deletedAt: null, channelId: q.channelId, ...scoped },
       include: { channel: { select: { id: true, name: true, kind: true } }, rubric: { select: { name: true } }, _count: { select: { likes: true, comments: { where: { deletedAt: null } } } }, likes: viewerId ? { where: { userId: viewerId }, select: { userId: true } } : false },
       orderBy: { createdAt: 'desc' },
       take: q.limit,

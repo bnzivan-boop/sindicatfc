@@ -7,7 +7,7 @@ import { ZodBody, ZodQuery } from '../../common/decorators/zod-body.decorator.js
 import { CatchesService } from './catches.service.js';
 
 const commentSchema = z.object({ text: z.string().min(1).max(1000) });
-const feedQuery = z.object({ cursor: z.string().optional(), limit: z.coerce.number().int().min(1).max(50).default(20) });
+const feedQuery = z.object({ cursor: z.string().optional(), limit: z.coerce.number().int().min(1).max(50).default(20), scope: z.enum(['all', 'friends']).default('all') });
 
 /** Трофей как публичная карточка: галерея, характеристики, лайки, комментарии; лента опубликованных трофеев. */
 @ApiTags('trophies')

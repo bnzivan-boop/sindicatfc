@@ -13,7 +13,10 @@ export type NotificationKind =
   | 'protest.resolved'
   | 'schedule.changed'
   | 'trophy.comment'
-  | 'trophy.like';
+  | 'trophy.like'
+  | 'friend.request'
+  | 'friend.accepted'
+  | 'trip.invited';
 
 @Injectable()
 export class NotificationsService {

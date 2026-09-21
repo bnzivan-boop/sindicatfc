@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/roles.decorator.js';
 import { ZodQuery } from '../../common/decorators/zod-body.decorator.js';
 import { z } from 'zod';
@@ -22,15 +23,15 @@ export class UsersController {
   /** Публичный профиль: без телефона, точных координат и документов. */
   @Public()
   @Get(':id')
-  publicProfile(@Param('id', ParseUUIDPipe) id: string) {
-    return this.users.getPublicProfile(id);
+  publicProfile(@CurrentUser() viewer: AuthUser | undefined, @Param('id', ParseUUIDPipe) id: string) {
+    return this.users.getPublicProfile(id, viewer?.id);
   }
 
-  /** Публичные комплекты (visibility=PUBLIC); документы лодки не отдаются никогда. */
+  /** Комплекты с видимостью PUBLIC, а для друзей — и FRIENDS; документы лодки не отдаются никогда. */
   @Public()
   @Get(':id/gear-kits')
-  publicKits(@Param('id', ParseUUIDPipe) id: string) {
-    return this.users.getPublicKits(id);
+  publicKits(@CurrentUser() viewer: AuthUser | undefined, @Param('id', ParseUUIDPipe) id: string) {
+    return this.users.getPublicKits(id, viewer?.id);
   }
 }
 

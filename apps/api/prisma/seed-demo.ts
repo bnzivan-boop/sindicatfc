@@ -357,6 +357,20 @@ async function main() {
     }
   }
 
+  // ── дружба: у героев есть друзья, входящая и исходящая заявки
+  for (const hero of HEROES) {
+    const hid = userIds.get(hero)!;
+    const pair = (a: string, b: string) => (a < b ? { userAId: a, userBId: b } : { userAId: b, userBId: a });
+    const mk = async (phone: string, status: 'ACCEPTED' | 'PENDING', requestedBy: 'hero' | 'other') => {
+      const oid = userIds.get(phone)!;
+      await prisma.friendship.upsert({ where: { userAId_userBId: pair(hid, oid) }, create: { ...pair(hid, oid), status, requestedBy: requestedBy === 'hero' ? hid : oid, respondedAt: status === 'ACCEPTED' ? now : null }, update: {} });
+    };
+    await mk('+79990000004', 'ACCEPTED', 'hero'); await mk('+79990000008', 'ACCEPTED', 'other'); await mk('+79990000003', 'ACCEPTED', 'hero');
+    await mk('+79990000009', 'PENDING', 'other'); await mk('+79990000011', 'PENDING', 'hero');
+  }
+  // один комплект Крылова — «только друзьям», чтобы видимость было чем проверить
+  { const k = await prisma.gearKit.findFirst({ where: { ownerId: userIds.get('+79990000004')! } }); if (k) await prisma.gearKit.update({ where: { id: k.id }, data: { visibility: 'FRIENDS' } }); }
+
   // ── уведомления для «меня»
   for (const hero of HEROES) {
     const me = userIds.get(hero)!;

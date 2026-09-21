@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { StorageService } from '../../infra/storage/storage.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { FriendsService } from '../friends/friends.service.js';
 
 @Injectable()
 export class CatchesService {
@@ -11,6 +12,7 @@ export class CatchesService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly notifications: NotificationsService,
+    private readonly friends: FriendsService,
   ) {}
 
   async listOwn(ownerId: string) {
@@ -173,9 +175,10 @@ export class CatchesService {
   }
 
   /** Лента трофеев: PUBLISHED + PUBLIC, новые сверху, cursor по promotedAt. */
-  async feed(viewerId: string | undefined, q: { cursor?: string; limit: number }) {
+  async feed(viewerId: string | undefined, q: { cursor?: string; limit: number; scope?: 'all' | 'friends' }) {
+    const friendIds = q.scope === 'friends' && viewerId ? await this.friends.friendIds(viewerId) : null;
     const rows = await this.prisma.trophy.findMany({
-      where: { status: 'PUBLISHED', catch: { visibility: 'PUBLIC' }, ...(q.cursor ? { promotedAt: { lt: new Date(q.cursor) } } : {}) },
+      where: { status: 'PUBLISHED', catch: { visibility: friendIds ? { in: ['PUBLIC', 'FRIENDS'] } : 'PUBLIC', ...(friendIds ? { ownerId: { in: friendIds } } : {}) }, ...(q.cursor ? { promotedAt: { lt: new Date(q.cursor) } } : {}) },
       include: { catch: { include: { species: true, owner: { include: { profile: { select: { displayName: true, city: { select: { name: true } } } } } }, media: { include: { file: true }, orderBy: { sortOrder: 'asc' }, take: 1 }, location: { include: { waterbody: { select: { name: true } } } }, _count: { select: { likes: true, comments: { where: { deletedAt: null } } } }, likes: viewerId ? { where: { userId: viewerId }, select: { userId: true } } : false } } },
       orderBy: { promotedAt: 'desc' },
       take: q.limit + 1,

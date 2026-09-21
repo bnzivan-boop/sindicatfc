@@ -8,6 +8,7 @@ import { Avatar, DeepCard, DetailTopBar, EventTag, fontFamily, LimeButton, Page,
 import { FORMAT_RU, STATUS_RU, useCancel, useInvite, usePay, useRegistration, useUserSearch } from '../../src/features/registrations/useRegistrations';
 import { goBack } from '../../src/navigation';
 import { whiteAlpha } from '../../src/theme/tokens';
+import { useFriends } from '../../src/features/friends/useFriends';
 import { useTheme } from '../../src/theme/useTheme';
 import { Text } from 'react-native';
 
@@ -22,6 +23,9 @@ export default function RegistrationScreen() {
   const cancel = useCancel(id);
   const [q, setQ] = useState('');
   const hits = useUserSearch(q);
+  const friends = useFriends(!!me.data);
+  const memberIds = new Set((reg?.members ?? []).map((m) => m.userId));
+  const friendHits = q.trim().length < 2 ? (friends.data?.friends ?? []).filter((f) => !memberIds.has(f.id)).map((f) => ({ id: f.id, displayName: f.displayName, city: f.city, discipline: f.discipline })) : [];
 
   if (!reg) return <Page><DetailTopBar title="заявка" left={<Round icon={ArrowLeft} onPress={() => goBack('/my-registrations')} />} /><T muted>Загрузка…</T></Page>;
   const isOwner = reg.ownerId === me.data?.id;
@@ -64,7 +68,8 @@ export default function RegistrationScreen() {
             <TextInput value={q} onChangeText={setQ} placeholder="имя или фамилия" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, color: colors.text, paddingVertical: 10, fontSize: 12 }]} />
           </View>
           <View style={{ gap: 6, marginTop: 8 }}>
-            {(hits.data ?? []).filter((h) => h.id !== me.data?.id).map((h) => (
+            {friendHits.length > 0 && <T size={9} muted>ваши друзья</T>}
+            {[...friendHits, ...(hits.data ?? [])].filter((h) => h.id !== me.data?.id).map((h) => (
               <Surface key={h.id} radius={14} style={{ padding: 10, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
                 <Avatar name={h.displayName} size={32} />
                 <View style={{ flex: 1 }}><T size={11} weight="500">{h.displayName}</T><T size={9} muted>{[h.city, h.discipline?.toLowerCase()].filter(Boolean).join(' · ')}</T></View>

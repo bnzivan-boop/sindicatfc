@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Bell, CalendarClock, CheckCircle2, Fish, Heart, MessageCircle, TriangleAlert, type LucideIcon } from 'lucide-react-native';
+import { ArrowLeft, Bell, CalendarClock, CheckCircle2, Fish, Heart, MessageCircle, TriangleAlert, UserPlus, type LucideIcon } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
+import { router } from 'expo-router';
 import { api } from '../src/api/client';
 import { useMe } from '../src/auth/useAuth';
 import { DetailTopBar, Page, PageTitle, Round, Surface, T } from '../src/components/ui';
@@ -9,7 +10,7 @@ import { useTheme } from '../src/theme/useTheme';
 
 interface Notification { id: string; kind: string; title: string; body: string; readAt: string | null; createdAt: string }
 
-const ICONS: Record<string, LucideIcon> = { 'result.accepted': Fish, 'result.rejected': TriangleAlert, 'result.resubmission': TriangleAlert, 'tournament.reminder': Bell, 'registration.confirmed': CheckCircle2, 'registration.invited': CheckCircle2, 'schedule.changed': CalendarClock, 'protest.resolved': TriangleAlert, 'trophy.comment': MessageCircle, 'trophy.like': Heart };
+const ICONS: Record<string, LucideIcon> = { 'result.accepted': Fish, 'result.rejected': TriangleAlert, 'result.resubmission': TriangleAlert, 'tournament.reminder': Bell, 'registration.confirmed': CheckCircle2, 'registration.invited': CheckCircle2, 'schedule.changed': CalendarClock, 'protest.resolved': TriangleAlert, 'trophy.comment': MessageCircle, 'trophy.like': Heart, 'friend.request': UserPlus, 'friend.accepted': UserPlus, 'trip.invited': CalendarClock };
 
 const ago = (iso: string) => {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -39,7 +40,7 @@ export default function NotificationsScreen() {
         {rows.map((n) => {
           const Icon = ICONS[n.kind] ?? Bell;
           return (
-            <Pressable key={n.id} onPress={() => !n.readAt && read.mutate(n.id)}>
+            <Pressable key={n.id} onPress={() => { if (!n.readAt) read.mutate(n.id); if (n.kind.startsWith('friend.')) router.push('/friends'); }}>
               <Surface radius={15} style={{ padding: 11, flexDirection: 'row', gap: 9, alignItems: 'flex-start', backgroundColor: n.readAt ? colors.surface : `${colors.green}14` }}>
                 <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
                   <Icon size={16} color={colors.green} strokeWidth={1.6} />

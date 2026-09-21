@@ -3,12 +3,14 @@ import type { PublicProfile, SetDisciplines, UpdateProfile } from '@sindikat/dom
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { StorageService } from '../../infra/storage/storage.service.js';
+import { FriendsService } from '../friends/friends.service.js';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly friends: FriendsService,
   ) {}
 
   /** Приватный профиль + сводка сезона по основной дисциплине (для rank-card на главной). */
@@ -33,7 +35,8 @@ export class UsersService {
     return { ...user, avatarUrl, season: seasonSummary, privacy: await this.privacy(userId) };
   }
 
-  async getPublicProfile(userId: string): Promise<PublicProfile> {
+  async getPublicProfile(userId: string, viewerId?: string): Promise<PublicProfile & { friendship: { state: string; mutual: number } }> {
+    if (await this.friends.isBlocked(viewerId, userId)) throw new NotFoundException('Профиль недоступен');
     const user = await this.prisma.user.findUnique({
       where: { id: userId, status: 'ACTIVE' },
       include: { profile: { include: { city: true, avatar: true } }, disciplines: { orderBy: { priority: 'asc' } } },
@@ -61,6 +64,7 @@ export class UsersService {
       history,
       podiums: history.filter((h) => h.place !== null && h.place <= 3).length,
       wins: history.filter((h) => h.place === 1).length,
+      friendship: await this.friends.status(viewerId ?? '', userId).catch(() => ({ state: 'NONE', mutual: 0 })),
     };
   }
 
@@ -90,10 +94,13 @@ export class UsersService {
     });
   }
 
-  async getPublicKits(userId: string) {
-    const kits = await this.prisma.gearKit.findMany({ where: { ownerId: userId, visibility: 'PUBLIC' }, orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }] });
-    const boat = await this.prisma.boat.findFirst({ where: { ownerId: userId, visibility: 'PUBLIC' }, select: { type: true, customName: true, lengthCm: true, seats: true, equipment: true } });
-    return { kits, boat };
+  async getPublicKits(userId: string, viewerId?: string) {
+    const friend = await this.friends.areFriends(viewerId, userId);
+    const visibility = friend ? { in: ['PUBLIC', 'FRIENDS'] as Array<'PUBLIC' | 'FRIENDS'> } : ('PUBLIC' as const);
+    const kits = await this.prisma.gearKit.findMany({ where: { ownerId: userId, visibility }, orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }] });
+    const boat = await this.prisma.boat.findFirst({ where: { ownerId: userId, visibility }, select: { type: true, customName: true, lengthCm: true, seats: true, equipment: true } });
+    const hidden = friend ? 0 : await this.prisma.gearKit.count({ where: { ownerId: userId, visibility: 'FRIENDS' } });
+    return { kits, boat, hiddenForFriends: hidden };
   }
 
   async search(q: string) {

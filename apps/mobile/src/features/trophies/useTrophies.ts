@@ -10,7 +10,7 @@ export interface TrophyDetail {
 export interface FeedItem { id: string; owner: { id: string; displayName: string; city: string | null }; species: string; lengthMm: number | null; weightG: number | null; description: string | null; photo: string | null; waterbody: string | null; isPersonalRecord: boolean; publishedAt: string; likes: number; comments: number; likedByMe: boolean }
 
 export const useTrophy = (id: string) => useQuery({ queryKey: ['trophy', id], queryFn: () => api<TrophyDetail>(`/trophies/${id}`), enabled: !!id });
-export const useTrophyFeed = () => useQuery({ queryKey: ['feed-trophies'], queryFn: () => api<{ items: FeedItem[]; nextCursor: string | null }>('/feed/trophies?limit=30') });
+export const useTrophyFeed = (scope: 'all' | 'friends' = 'all') => useQuery({ queryKey: ['feed-trophies', scope], queryFn: () => api<{ items: FeedItem[]; nextCursor: string | null }>(`/feed/trophies?limit=30&scope=${scope}`) });
 
 export function useLikeTrophy(id: string) {
   const qc = useQueryClient();

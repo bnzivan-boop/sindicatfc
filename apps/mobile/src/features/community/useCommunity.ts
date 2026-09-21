@@ -9,7 +9,7 @@ export interface PostComment { id: string; authorId: string; author: string; tex
 
 export const useChannels = () => useQuery({ queryKey: ['channels'], queryFn: () => api<ChannelRow[]>('/community/channels') });
 export const useChannel = (id: string) => useQuery({ queryKey: ['channel', id], queryFn: () => api<ChannelDetail>(`/community/channels/${id}`), enabled: !!id });
-export const usePosts = (channelId?: string) => useQuery({ queryKey: ['posts', channelId ?? 'all'], queryFn: () => api<PostRow[]>(`/community/posts?limit=30${channelId ? `&channelId=${channelId}` : ''}`) });
+export const usePosts = (channelId?: string, scope: 'all' | 'friends' = 'all') => useQuery({ queryKey: ['posts', channelId ?? 'all', scope], queryFn: () => api<PostRow[]>(`/community/posts?limit=30&scope=${scope}${channelId ? `&channelId=${channelId}` : ''}`) });
 export const usePost = (id: string) => useQuery({ queryKey: ['post', id], queryFn: () => api<PostRow & { comments: PostComment[] }>(`/community/posts/${id}`), enabled: !!id });
 
 export function useJoinChannel(id: string) {

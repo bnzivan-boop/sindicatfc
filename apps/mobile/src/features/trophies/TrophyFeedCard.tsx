@@ -17,7 +17,7 @@ export function TrophyFeedCard({ item }: { item: FeedItem }) {
   const qc = useQueryClient();
   const like = useMutation({
     mutationFn: () => api<{ liked: boolean; likes: number }>(`/trophies/${item.id}/like`, { method: 'POST', body: {} }),
-    onSuccess: (r) => qc.setQueryData<{ items: FeedItem[]; nextCursor: string | null }>(['feed-trophies'], (d) => (d ? { ...d, items: d.items.map((i) => (i.id === item.id ? { ...i, likes: r.likes, likedByMe: r.liked } : i)) } : d)),
+    onSuccess: (r) => qc.setQueriesData<{ items: FeedItem[]; nextCursor: string | null }>({ queryKey: ['feed-trophies'] }, (d) => (d ? { ...d, items: d.items.map((i) => (i.id === item.id ? { ...i, likes: r.likes, likedByMe: r.liked } : i)) } : d)),
   });
   const open = () => router.push({ pathname: '/trophy/[id]', params: { id: item.id } });
   return (

@@ -26,8 +26,9 @@ export default function CommunityScreen() {
   const joinTrip = useJoinTrip();
   const decideTrip = useDecideTrip();
   const [invited, setInvited] = useState<Record<string, boolean>>({});
-  const feed = useTrophyFeed();
-  const posts = usePosts();
+  const scope = feedFilter === 'subs' ? 'friends' : 'all';
+  const feed = useTrophyFeed(scope);
+  const posts = usePosts(undefined, scope);
   const channels = useChannels();
   const timeline = [
     ...(feed.data?.items ?? []).map((t) => ({ kind: 'trophy' as const, at: t.publishedAt, t })),
@@ -44,7 +45,7 @@ export default function CommunityScreen() {
         <>
           <FilterRow items={[{ value: 'for-you' as const, label: 'для вас' }, { value: 'subs' as const, label: 'подписки' }, { value: 'near' as const, label: 'рядом' }]} value={feedFilter} onChange={setFeedFilter} />
           <View style={{ gap: 10 }}>
-            {timeline.length === 0 && <Surface><T size={10} muted>{feed.isLoading || posts.isLoading ? 'Загрузка…' : 'Лента пуста'}</T></Surface>}
+            {timeline.length === 0 && <Surface><T size={10} muted>{feed.isLoading || posts.isLoading ? 'Загрузка…' : feedFilter === 'subs' ? 'Здесь публикации друзей и ваших каналов. Добавьте друзей — они на вкладке «кого добавить» в профиле.' : 'Лента пуста'}</T></Surface>}
             {timeline.map((x) => (x.kind === 'trophy' ? <TrophyFeedCard key={`t-${x.t.id}`} item={x.t} /> : <PostCard key={`p-${x.p.id}`} post={x.p} onOpen={() => router.push({ pathname: '/community/topic/[id]', params: { id: x.p.id } })} />))}
           </View>
         </>
@@ -76,7 +77,7 @@ export default function CommunityScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                     <Pressable onPress={() => router.push(t.author.id === me.data?.id ? '/(tabs)/profile' : { pathname: '/user/[id]', params: { id: t.author.id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Avatar name={t.author.displayName} size={24} /><T size={10}>{t.author.displayName.split(' ')[0]} · {t.author.meta}</T></Pressable>
                     {t.isAuthor ? <T size={9} color={colors.green}>вы организатор{t.requests.length ? ` · ${t.requests.length} заявок` : ''}</T> : (
-                      <Pressable onPress={() => (me.data ? joinTrip.mutate(t.id) : router.push('/onboarding'))} disabled={!t.seatsLeft && !t.myStatus} style={{ backgroundColor: t.myStatus ? colors.surface2 : colors.text, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, opacity: !t.seatsLeft && !t.myStatus ? 0.5 : 1 }}><T size={9} color={t.myStatus ? colors.text : colors.bg}>{t.myStatus === 'ACCEPTED' ? 'вы едете' : t.myStatus === 'REQUESTED' ? 'запрос отправлен' : t.myStatus === 'DECLINED' ? 'отказано' : 'присоединиться'}</T></Pressable>
+                      <Pressable onPress={() => (me.data ? joinTrip.mutate(t.id) : router.push('/onboarding'))} disabled={!t.seatsLeft && !t.myStatus} style={{ backgroundColor: t.myStatus === 'INVITED' ? colors.lime : t.myStatus ? colors.surface2 : colors.text, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, opacity: !t.seatsLeft && !t.myStatus ? 0.5 : 1 }}><T size={9} color={t.myStatus === 'INVITED' ? colors.onLime : t.myStatus ? colors.text : colors.bg}>{t.myStatus === 'ACCEPTED' ? 'вы едете' : t.myStatus === 'REQUESTED' ? 'запрос отправлен' : t.myStatus === 'INVITED' ? 'вас зовут · принять' : t.myStatus === 'DECLINED' ? 'отказано' : 'присоединиться'}</T></Pressable>
                     )}
                   </View>
                   {t.isAuthor && t.requests.map((uid) => (

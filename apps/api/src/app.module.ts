@@ -9,6 +9,7 @@ import { AdminModule } from './modules/admin/admin.module.js';
 import { CatchesModule } from './modules/catches/catches.module.js';
 import { CommunityModule } from './modules/community/community.module.js';
 import { CompetitionModule } from './modules/competition/competition.module.js';
+import { FriendsModule } from './modules/friends/friends.module.js';
 import { GearModule } from './modules/gear/gear.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
@@ -33,6 +34,7 @@ import { UsersModule } from './modules/users/users.module.js';
     // домены
     IdentityModule,
     UsersModule,
+    FriendsModule,
     GearModule,
     CatchesModule,
     TournamentsModule,

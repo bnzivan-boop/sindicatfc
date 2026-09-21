@@ -20,6 +20,8 @@ export class SocialController {
   @Public() @Get('trips') trips(@CurrentUser() u: AuthUser | undefined) { return this.social.trips(u?.id); }
   @Post('trips') @ApiBearerAuth() createTrip(@CurrentUser() u: AuthUser, @ZodBody(tripSchema) dto: z.infer<typeof tripSchema>) { return this.social.createTrip(u.id, dto); }
   @Post('trips/:id/join') @ApiBearerAuth() joinTrip(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) { return this.social.toggleTripRequest(u.id, id); }
+  /** Пригласить друга на свой выезд — он принимает одним тапом (join). */
+  @Post('trips/:id/invite') @ApiBearerAuth() inviteTrip(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @ZodBody(z.object({ userId: z.string().uuid() })) dto: { userId: string }) { return this.social.inviteToTrip(u.id, id, dto.userId); }
   @Post('trips/:id/decide') @ApiBearerAuth() decideTrip(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @ZodBody(decideSchema) dto: z.infer<typeof decideSchema>) { return this.social.decideTrip(u.id, id, dto); }
   @Public() @Get('matches') matches(@CurrentUser() u: AuthUser | undefined) { return this.social.matches(u?.id); }
 

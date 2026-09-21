@@ -8,6 +8,7 @@ import { DetailTopBar, LimeButton, Page, PageTitle, Round, Surface, T } from '..
 import { DISCIPLINE_LABELS_RU, Discipline } from '@sindikat/domain';
 import { useChannel, useChannels, useCreateChannel, useCreateClub, useCreatePost, useCreateTrip } from '../../src/features/community/useCommunity';
 import { goBack } from '../../src/navigation';
+import { api } from '../../src/api/client';
 import { useTheme } from '../../src/theme/useTheme';
 
 type Kind = 'post' | 'channel' | 'trip' | 'club';
@@ -15,7 +16,7 @@ type Kind = 'post' | 'channel' | 'trip' | 'club';
 /** Формы create-* из прототипа. Пост и канал — настоящие; выезд и клуб — пока демо (модуль этапа 5). */
 export default function CreateScreen() {
   const { colors } = useTheme();
-  const { kind = 'post', channelId } = useLocalSearchParams<{ kind?: Kind; channelId?: string }>();
+  const { kind = 'post', channelId, invite } = useLocalSearchParams<{ kind?: Kind; channelId?: string; invite?: string }>();
   const channels = useChannels();
   const [chId, setChId] = useState<string | undefined>(channelId);
   const channel = useChannel(chId ?? '');
@@ -67,7 +68,7 @@ export default function CreateScreen() {
     return (
       <Page>
         <DetailTopBar title="совместный выезд" left={<Round icon={ArrowLeft} onPress={() => goBack('/(tabs)/community')} />} />
-        <PageTitle title="совместный выезд" subtitle="найдите компанию на рыбалку" />
+        <PageTitle title="совместный выезд" subtitle={invite ? 'друг получит приглашение сразу после создания' : 'найдите компанию на рыбалку'} />
         <View style={{ gap: 12 }}>
           <Field label="что делаем" value={v['title'] ?? ''} onChangeText={set('title')} placeholder="вечерний микроджиг на Москве-реке" />
           <Field label="куда едем" value={v['place'] ?? ''} onChangeText={set('place')} placeholder="Нескучный сад" />
@@ -78,7 +79,7 @@ export default function CreateScreen() {
           </View>
           <Field label="детали" value={v['details'] ?? ''} onChangeText={set('details')} multiline placeholder="Спокойный темп, новички тоже велкам. Встречаемся у главного входа." style={{ minHeight: 80, textAlignVertical: 'top' }} />
           {createTrip.isError && <T size={10} color={colors.orange}>{String(createTrip.error)}</T>}
-          <LimeButton title={createTrip.isPending ? 'создаём…' : 'создать выезд'} disabled={!valid || createTrip.isPending} onPress={() => createTrip.mutate({ title: v['title']!.trim(), place: v['place']!.trim(), startsAt: toIso(v['date']!, v['time']!), seats: Number(v['seats'] ?? 2) || 2, details: v['details']?.trim() || undefined }, { onSuccess: () => router.replace('/(tabs)/community') })} />
+          <LimeButton title={createTrip.isPending ? 'создаём…' : 'создать выезд'} disabled={!valid || createTrip.isPending} onPress={() => createTrip.mutate({ title: v['title']!.trim(), place: v['place']!.trim(), startsAt: toIso(v['date']!, v['time']!), seats: Number(v['seats'] ?? 2) || 2, details: v['details']?.trim() || undefined }, { onSuccess: async (t) => { if (invite) await api(`/community/trips/${t.id}/invite`, { method: 'POST', body: { userId: invite } }).catch(() => undefined); router.replace('/(tabs)/community'); } })} />
         </View>
       </Page>
     );

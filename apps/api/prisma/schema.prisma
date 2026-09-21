@@ -1258,3 +1258,27 @@ model ClubSlot {
 
   @@map("club_slots")
 }
+
+// ───────────────────────── Друзья ─────────────────────────
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+/// Симметричная дружба: пара хранится один раз (userAId < userBId). Кто попросил — requestedBy; блокировка — односторонняя, blockedBy.
+model Friendship {
+  userAId     String           @map("user_a_id")
+  userBId     String           @map("user_b_id")
+  status      FriendshipStatus @default(PENDING)
+  requestedBy String           @map("requested_by")
+  blockedBy   String?          @map("blocked_by")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  respondedAt DateTime?        @map("responded_at")
+
+  @@id([userAId, userBId])
+  @@index([userBId, status])
+  @@map("friendships")
+}

@@ -9,7 +9,7 @@ import { CommunityService } from './community.service.js';
 const createChannelSchema = z.object({ name: z.string().min(3).max(60), city: z.string().max(60).optional(), description: z.string().max(300).optional() });
 const createPostSchema = z.object({ title: z.string().min(3).max(120), text: z.string().min(1).max(4000), rubricId: z.string().uuid().optional() });
 const commentSchema = z.object({ text: z.string().min(1).max(1000) });
-const feedQuery = z.object({ limit: z.coerce.number().int().min(1).max(50).default(20), channelId: z.string().uuid().optional() });
+const feedQuery = z.object({ limit: z.coerce.number().int().min(1).max(50).default(20), channelId: z.string().uuid().optional(), scope: z.enum(['all', 'friends']).default('all') });
 
 @ApiTags('community')
 @Controller('community')
