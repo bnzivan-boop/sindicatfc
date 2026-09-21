@@ -16,9 +16,18 @@ export const envSchema = z.object({
   S3_SECRET_KEY: z.string(),
   S3_BUCKET_MEDIA: z.string(),
   S3_BUCKET_PRIVATE: z.string(),
-  OTP_PROVIDER: z.enum(['console', 'sms']).default('console'),
-  /** Только для OTP_PROVIDER=console: универсальный код для демо-входа. */
+  /** Каскад каналов доставки кода через запятую: telegram,vk,sms (dev: console). Неподключённые пропускаются. */
+  OTP_CHANNELS: z.string().default('console'),
+  /** Универсальный код для демо-входа; работает только если в каскаде есть console. */
   OTP_DEV_CODE: z.string().regex(/^\d{4,6}$/).optional(),
+  TELEGRAM_GATEWAY_TOKEN: z.string().optional(),
+  TELEGRAM_GATEWAY_SENDER: z.string().optional(),
+  VK_OTP_URL: z.string().url().or(z.literal('')).optional(),
+  VK_OTP_TOKEN: z.string().optional(),
+  VK_OTP_TEMPLATE: z.string().optional(),
+  SMS_URL: z.string().url().or(z.literal('')).optional(),
+  SMS_API_KEY: z.string().optional(),
+  SMS_SENDER: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

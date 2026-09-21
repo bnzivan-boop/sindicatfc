@@ -1,4 +1,4 @@
-import type { Discipline, UpsertGearKit, WaterType } from '@sindikat/domain';
+import type { OtpChannel, Discipline, UpsertGearKit, WaterType } from '@sindikat/domain';
 import { createContext, useContext, useMemo, useState, type PropsWithChildren } from 'react';
 
 /**
@@ -23,6 +23,8 @@ export interface OnboardingDraft {
   kit?: Partial<UpsertGearKit> & { rodText?: string; reelText?: string; lineText?: string };
   hasBoat?: boolean;
   boatText?: string;
+  /** Куда ушёл код и какие каналы ещё можно попросить («не пришло»). */
+  otp?: { channel: OtpChannel; fallbacks: OtpChannel[] };
 }
 
 const initial: OnboardingDraft = { phone: '+7', displayName: '', disciplines: [], targetSpeciesIds: [], waterTypes: [] };

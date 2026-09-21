@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { OtpVerify, TokenPair } from '@sindikat/domain';
+import type { OtpRequest, OtpRequestResult, OtpVerify, TokenPair } from '@sindikat/domain';
 import { api, ApiError } from '../api/client';
 import { clearSession, getAccessToken, saveSession } from './session';
 
@@ -34,8 +34,9 @@ export function useMe() {
   });
 }
 
+/** Запрос кода; сервер сам выбирает канал (telegram → vk → sms), channel — принудительный выбор при «не пришло». */
 export function useRequestOtp() {
-  return useMutation({ mutationFn: (phone: string) => api('/auth/otp/request', { method: 'POST', body: { phone }, auth: false }) });
+  return useMutation({ mutationFn: (dto: OtpRequest) => api<OtpRequestResult>('/auth/otp/request', { method: 'POST', body: dto, auth: false }) });
 }
 
 export function useVerifyOtp() {

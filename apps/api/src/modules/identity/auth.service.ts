@@ -14,8 +14,8 @@ export class AuthService {
   ) {}
 
   async requestOtp(dto: OtpRequest) {
-    await this.otp.issue(dto.phone);
-    return { status: 'sent' };
+    const r = await this.otp.issue(dto.phone, dto.channel);
+    return { status: 'sent', ...r };
   }
 
   /** Первый вход создаёт пользователя с пустым профилем — онбординг заполняет его. */

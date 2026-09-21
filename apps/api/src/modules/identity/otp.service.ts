@@ -1,8 +1,10 @@
-import { HttpException, HttpStatus, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomInt } from 'node:crypto';
 import type { Env } from '../../config/env.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
+import { OtpDeliveryService } from '../../infra/otp/otp-delivery.service.js';
+import type { OtpChannelName } from '../../infra/otp/channel.js';
 
 const OTP_TTL_MS = 5 * 60_000;
 const MAX_ATTEMPTS = 5;
@@ -14,29 +16,30 @@ const MAX_PER_HOUR = 5;
  */
 @Injectable()
 export class OtpService {
-  private readonly logger = new Logger(OtpService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService<Env, true>,
+    private readonly delivery: OtpDeliveryService,
   ) {}
 
-  async issue(phone: string): Promise<void> {
+  /** Выдаёт код и доставляет каскадом; prefer — канал, который просит клиент («не пришло — отправить SMS»). */
+  async issue(phone: string, prefer?: OtpChannelName) {
     const since = new Date(Date.now() - 3_600_000);
     const recent = await this.prisma.otpChallenge.count({ where: { phone, createdAt: { gte: since } } });
     if (recent >= MAX_PER_HOUR) throw new HttpException('Слишком много запросов кода', HttpStatus.TOO_MANY_REQUESTS);
 
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    const delivered = await this.delivery.deliver(phone, code, prefer);
     await this.prisma.otpChallenge.create({
-      data: { phone, codeHash: this.hash(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+      data: { phone, codeHash: this.hash(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS), channel: delivered.channel, providerRequestId: delivered.providerRequestId },
     });
-    await this.send(phone, code);
+    return { channel: delivered.channel, fallbacks: delivered.fallbacks, ttlSec: OTP_TTL_MS / 1000 };
   }
 
   async verify(phone: string, code: string): Promise<void> {
-    // Демо-режим: универсальный код без SMS (только при console-провайдере)
+    // Демо-режим: универсальный код — только если в каскаде есть console-канал
     const devCode = this.config.get('OTP_DEV_CODE');
-    if (devCode && this.config.get('OTP_PROVIDER') === 'console' && code === devCode) return;
+    if (devCode && this.delivery.available().includes('console') && code === devCode) return;
 
     const challenge = await this.prisma.otpChallenge.findFirst({
       where: { phone, expiresAt: { gt: new Date() } },
@@ -55,12 +58,4 @@ export class OtpService {
     return createHash('sha256').update(`${phone}:${code}`).digest('hex');
   }
 
-  private async send(phone: string, code: string) {
-    if (this.config.get('OTP_PROVIDER') === 'console') {
-      this.logger.warn(`[DEV OTP] ${phone} → ${code}`);
-      return;
-    }
-    // TODO(этап 1): SMS-провайдер с резервным каналом и антифродом (handoff, раздел 11).
-    throw new Error('SMS-провайдер не настроен');
-  }
 }

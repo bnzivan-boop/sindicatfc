@@ -196,6 +196,9 @@ model OtpChallenge {
   id        String   @id @default(uuid())
   phone     String
   codeHash  String   @map("code_hash")
+  /// Через какой канал ушёл код (telegram / vk / sms / console) и id запроса у провайдера
+  channel   String?
+  providerRequestId String? @map("provider_request_id")
   attempts  Int      @default(0)
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")

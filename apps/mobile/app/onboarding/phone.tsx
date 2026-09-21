@@ -14,7 +14,7 @@ export default function PhoneStep() {
   const request = useRequestOtp();
   const valid = phoneSchema.safeParse(draft.phone).success;
   return (
-    <WizardFrame step="phone" title="вход по телефону" subtitle="код придёт в SMS · аккаунт создаётся автоматически" nextLabel={request.isPending ? 'отправляем…' : 'получить код'} nextDisabled={!valid} busy={request.isPending} error={request.isError ? String(request.error) : null} onNext={() => request.mutate(draft.phone, { onSuccess: () => go('code') })}>
+    <WizardFrame step="phone" title="вход по телефону" subtitle="код придёт в Telegram, VK или SMS · аккаунт создаётся автоматически" nextLabel={request.isPending ? 'отправляем…' : 'получить код'} nextDisabled={!valid} busy={request.isPending} error={request.isError ? String(request.error) : null} onNext={() => request.mutate({ phone: draft.phone }, { onSuccess: (r) => { patch({ otp: { channel: r.channel, fallbacks: r.fallbacks } }); go('code'); } })}>
       <DeepCard>
         <Text style={[fontFamily, { fontSize: 10, letterSpacing: 0.9, textTransform: 'uppercase', color: whiteAlpha(65) }]}>синдикат · сезон {new Date().getFullYear()}</Text>
         <Text style={[fontFamily, { fontSize: 24, lineHeight: 26, fontWeight: '500', letterSpacing: -1, color: colors.white, marginTop: 20, marginBottom: 6 }]}>Турниры, рейтинг, арсенал и трофеи — в одном месте</Text>

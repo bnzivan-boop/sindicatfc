@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
+import { OtpModule } from './infra/otp/otp.module.js';
 import { PushModule } from './infra/push/push.module.js';
 import { RealtimeModule } from './infra/realtime/realtime.module.js';
 import { StorageModule } from './infra/storage/storage.module.js';
@@ -29,6 +30,7 @@ import { UsersModule } from './modules/users/users.module.js';
     // инфраструктура
     PrismaModule,
     PushModule,
+    OtpModule,
     StorageModule,
     RealtimeModule,
     // домены
