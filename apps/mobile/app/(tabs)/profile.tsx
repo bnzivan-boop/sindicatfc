@@ -10,7 +10,7 @@ import { useBoat, useGearKits } from '../../src/features/gear/useGear';
 import { useFriends } from '../../src/features/friends/useFriends';
 import { STATUS_RU as REG_STATUS, useMyRegistrations } from '../../src/features/registrations/useRegistrations';
 import { useLogout, useMe } from '../../src/auth/useAuth';
-import { Avatar, DeepCard, DetailTopBar, EventTag, fontFamily, InfoList, InfoRow, LimeButton, Page, Round, SectionHead, Stats, T, Track } from '../../src/components/ui';
+import { Avatar, DeepCard, DetailTopBar, EventTag, fontDisplay, fontFamily, fontSemi, InfoList, InfoRow, LimeButton, Page, Round, SectionHead, Stats, T, Track } from '../../src/components/ui';
 import { whiteAlpha } from '../../src/theme/tokens';
 import { useTheme } from '../../src/theme/useTheme';
 
@@ -41,7 +41,7 @@ export default function ProfileScreen() {
     return (
       <Page>
         <DetailTopBar title="мой профиль" left={<Round icon={ArrowLeft} onPress={() => goBack()} />} />
-        <DeepCard><Text style={[fontFamily, { fontSize: 21, fontWeight: '500', color: colors.white, marginBottom: 12 }]}>Войдите по телефону</Text><LimeButton title="войти" onPress={() => router.push('/onboarding')} /></DeepCard>
+        <DeepCard><Text style={[fontDisplay, { fontSize: 21, color: colors.white, marginBottom: 12 }]}>Войдите по телефону</Text><LimeButton title="войти" onPress={() => router.push('/onboarding')} /></DeepCard>
       </Page>
     );
   }
@@ -58,9 +58,9 @@ export default function ProfileScreen() {
 
       <DeepCard style={{ borderRadius: 23, padding: 17, marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-          <Pressable onPress={() => avatar.mutate()}>{me.data?.avatarUrl ? <Image source={{ uri: me.data.avatarUrl }} style={{ width: 62, height: 62, borderRadius: 19 }} /> : <Avatar name={name} size={62} lime radius={19} />}<View style={{ position: 'absolute', right: -4, bottom: -4, backgroundColor: colors.lime, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={[fontFamily, { fontSize: 8, color: colors.onLime }]}>{avatar.isPending ? '…' : 'фото'}</Text></View></Pressable>
+          <Pressable onPress={() => avatar.mutate()}>{me.data?.avatarUrl ? <Image source={{ uri: me.data.avatarUrl }} style={{ width: 62, height: 62, borderRadius: 19 }} /> : <Avatar name={name} size={62} lime radius={19} />}<View style={{ position: 'absolute', right: -4, bottom: -4, backgroundColor: colors.lime, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={[fontFamily, { fontSize: 8, color: colors.onLime }]}>{avatar.isPending ? '…' : 'фото'}</Text></View></Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={[fontFamily, { fontSize: 21, fontWeight: '500', letterSpacing: -0.8, color: colors.white, marginBottom: 4 }]}>{name}</Text>
+            <Text style={[fontDisplay, { fontSize: 21, letterSpacing: -0.8, color: colors.white, marginBottom: 4 }]}>{name}</Text>
             <Text style={[fontFamily, { fontSize: 10, color: whiteAlpha(70) }]}>
               {p?.city?.name ?? 'Москва'}{primary ? ` · ${DISCIPLINE_LABELS_RU[primary]}${me.data?.season?.rank ? ` №${me.data.season.rank}` : ''}` : ''} · участник с {since}
             </Text>
@@ -70,7 +70,7 @@ export default function ProfileScreen() {
         <View style={{ marginTop: 14 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
             <Text style={[fontFamily, { fontSize: 8, color: whiteAlpha(65) }]}>профиль заполнен</Text>
-            <Text style={[fontFamily, { fontSize: 8, fontWeight: '500', color: whiteAlpha(65) }]}>{pct}%</Text>
+            <Text style={[fontSemi, { fontSize: 8, color: whiteAlpha(65) }]}>{pct}%</Text>
           </View>
           <Track pct={pct} />
         </View>

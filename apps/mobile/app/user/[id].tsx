@@ -7,7 +7,7 @@ import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { api } from '../../src/api/client';
 import { LEVEL_LABEL, plural } from '../../src/api/helpers';
 import { useMe } from '../../src/auth/useAuth';
-import { Avatar, DeepCard, DetailTopBar, EventTag, FilterRow, fontFamily, InfoList, InfoRow, Page, Round, SectionHead, Stats, Surface, T } from '../../src/components/ui';
+import { Avatar, DeepCard, DetailTopBar, EventTag, FilterRow, fontDisplay, fontFamily, fontSemi, InfoList, InfoRow, Page, Round, SectionHead, Stats, Surface, T } from '../../src/components/ui';
 import { goBack } from '../../src/navigation';
 import { whiteAlpha } from '../../src/theme/tokens';
 import { FriendButton } from '../../src/features/friends/FriendButton';
@@ -41,20 +41,20 @@ export default function PublicProfileScreen() {
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
           {p.avatarUrl ? <Image source={{ uri: p.avatarUrl }} style={{ width: 62, height: 62, borderRadius: 19 }} /> : <Avatar name={p.displayName} size={62} lime radius={19} />}
           <View style={{ flex: 1 }}>
-            <Text style={[fontFamily, { fontSize: 21, fontWeight: '500', letterSpacing: -0.8, color: colors.white, marginBottom: 4 }]}>{p.displayName}</Text>
+            <Text style={[fontDisplay, { fontSize: 21, letterSpacing: -0.8, color: colors.white, marginBottom: 4 }]}>{p.displayName}</Text>
             <Text style={[fontFamily, { fontSize: 10, color: whiteAlpha(70) }]}>{[p.city, primary ? `${DISCIPLINE_LABELS_RU[primary.discipline]} №${primary.rank}` : null, `участник с ${new Date(p.memberSince).getFullYear()}`].filter(Boolean).join(' · ')}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
-          {p.disciplines.map((d) => <View key={d} style={{ backgroundColor: whiteAlpha(12), borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }}><Text style={[fontFamily, { fontSize: 9, color: colors.white }]}>{DISCIPLINE_LABELS_RU[d].toLowerCase()}</Text></View>)}
-          {p.experienceYears ? <View style={{ backgroundColor: whiteAlpha(12), borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }}><Text style={[fontFamily, { fontSize: 9, color: colors.white }]}>стаж {p.experienceYears} {plural(p.experienceYears, 'год', 'года', 'лет')}</Text></View> : null}
+          {p.disciplines.map((d) => <View key={d} style={{ backgroundColor: whiteAlpha(12), borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5 }}><Text style={[fontFamily, { fontSize: 9, color: colors.white }]}>{DISCIPLINE_LABELS_RU[d].toLowerCase()}</Text></View>)}
+          {p.experienceYears ? <View style={{ backgroundColor: whiteAlpha(12), borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5 }}><Text style={[fontFamily, { fontSize: 9, color: colors.white }]}>стаж {p.experienceYears} {plural(p.experienceYears, 'год', 'года', 'лет')}</Text></View> : null}
         </View>
         {p.bio ? <Text style={[fontFamily, { fontSize: 10, lineHeight: 15, color: whiteAlpha(75), marginTop: 12 }]}>{p.bio}</Text> : null}
       </DeepCard>
       <View style={{ flexDirection: 'row', gap: 7, marginBottom: 6, alignItems: 'center' }}>
         <View style={{ flex: 1 }}><FriendButton userId={p.id} state={p.friendship.state} mutual={p.friendship.mutual} /></View>
-        <Pressable onPress={() => router.push('/community/messages')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10 }}><MessageCircle size={13} color={colors.text} /><T size={10}>написать</T></Pressable>
-        <Pressable onPress={() => router.push({ pathname: '/community/create', params: { kind: 'trip', invite: p.id } })} style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10 }}><T size={10}>на рыбалку</T></Pressable>
+        <Pressable onPress={() => router.push('/community/messages')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surface2, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }}><MessageCircle size={13} color={colors.text} /><T size={10}>написать</T></Pressable>
+        <Pressable onPress={() => router.push({ pathname: '/community/create', params: { kind: 'trip', invite: p.id } })} style={{ backgroundColor: colors.surface2, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }}><T size={10}>на рыбалку</T></Pressable>
       </View>
       <Stats items={[{ label: 'стартов', value: String(p.history.length) }, { label: 'подиумы', value: String(p.podiums) }, { label: 'победы', value: String(p.wins) }]} />
 
@@ -80,8 +80,8 @@ export default function PublicProfileScreen() {
               return (
                 <View key={sn.discipline} style={{ width: 132, backgroundColor: i === 0 ? colors.deep : colors.surface, borderWidth: 1, borderColor: i === 0 ? 'transparent' : colors.line, borderRadius: 17, padding: 12, gap: 2 }}>
                   <Text style={[fontFamily, { fontSize: 9, color: i === 0 ? whiteAlpha(65) : colors.muted, textTransform: 'lowercase' }]}>{DISCIPLINE_LABELS_RU[sn.discipline]}{i === 0 ? ' · основная' : ''}</Text>
-                  <Text style={[fontFamily, { fontSize: 30, lineHeight: 32, fontWeight: '500', letterSpacing: -1.4, color: i === 0 ? (top ? colors.lime : colors.white) : top ? colors.green : colors.text, marginTop: 6 }]}>#{sn.rank}</Text>
-                  <Text style={[fontFamily, { fontSize: 11, fontWeight: '500', color: i === 0 ? colors.white : colors.text }]}>{sn.points.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} очков</Text>
+                  <Text style={[fontDisplay, { fontSize: 30, lineHeight: 32, letterSpacing: -1.4, color: i === 0 ? (top ? colors.lime : colors.white) : top ? colors.green : colors.text, marginTop: 6 }]}>#{sn.rank}</Text>
+                  <Text style={[fontSemi, { fontSize: 11, color: i === 0 ? colors.white : colors.text }]}>{sn.points.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} очков</Text>
                   <Text style={[fontFamily, { fontSize: 9, color: i === 0 ? whiteAlpha(65) : colors.muted }]}>{sn.starts} {plural(sn.starts, 'старт', 'старта', 'стартов')}</Text>
                 </View>
               );
@@ -127,7 +127,7 @@ export default function PublicProfileScreen() {
           </Pressable>
         ))}
         {p.history.length > 5 && (
-          <Pressable onPress={() => setAllHistory(!allHistory)} style={{ alignItems: 'center', padding: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 12, borderStyle: 'dashed' }}>
+          <Pressable onPress={() => setAllHistory(!allHistory)} style={{ alignItems: 'center', padding: 10, backgroundColor: colors.surface2, borderRadius: 12, borderStyle: 'dashed' }}>
             <T size={10} color={colors.green}>{allHistory ? 'свернуть' : `показать все ${p.history.length} ${plural(p.history.length, 'старт', 'старта', 'стартов')}`}</T>
           </Pressable>
         )}

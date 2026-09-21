@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { money } from '../../src/api/helpers';
 import { useMe } from '../../src/auth/useAuth';
-import { Avatar, DeepCard, DetailTopBar, EventTag, fontFamily, LimeButton, Page, PageTitle, Round, SectionHead, Surface, T } from '../../src/components/ui';
+import { Avatar, DeepCard, DetailTopBar, EventTag, fontDisplay, fontFamily, LimeButton, Page, PageTitle, Round, SectionHead, Surface, T } from '../../src/components/ui';
 import { FORMAT_RU, STATUS_RU, useCancel, useInvite, usePay, useRegistration, useUserSearch } from '../../src/features/registrations/useRegistrations';
 import { goBack } from '../../src/navigation';
 import { whiteAlpha } from '../../src/theme/tokens';
@@ -42,10 +42,10 @@ export default function RegistrationScreen() {
       <DetailTopBar title="заявка" left={<Round icon={ArrowLeft} onPress={() => goBack('/my-registrations')} />} />
       <DeepCard style={{ marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ backgroundColor: good ? colors.lime : whiteAlpha(15), borderRadius: 999, paddingHorizontal: 9, paddingVertical: 6 }}><Text style={[fontFamily, { fontSize: 9, letterSpacing: 0.7, textTransform: 'uppercase', color: good ? colors.onLime : colors.white }]}>{STATUS_RU[reg.status]}</Text></View>
-          {reg.startNumber && <Text style={[fontFamily, { fontSize: 24, fontWeight: '500', color: colors.lime }]}>№{reg.startNumber}</Text>}
+          <View style={{ backgroundColor: good ? colors.lime : whiteAlpha(15), borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6 }}><Text style={[fontFamily, { fontSize: 9, letterSpacing: 0.7, textTransform: 'uppercase', color: good ? colors.onLime : colors.white }]}>{STATUS_RU[reg.status]}</Text></View>
+          {reg.startNumber && <Text style={[fontDisplay, { fontSize: 24, color: colors.lime }]}>№{reg.startNumber}</Text>}
         </View>
-        <Text style={[fontFamily, { fontSize: 22, fontWeight: '500', letterSpacing: -0.8, color: colors.white, marginTop: 18 }]}>{reg.tournament?.title ?? 'Турнир'}</Text>
+        <Text style={[fontDisplay, { fontSize: 22, letterSpacing: -0.8, color: colors.white, marginTop: 18 }]}>{reg.tournament?.title ?? 'Турнир'}</Text>
         <Text style={[fontFamily, { fontSize: 10, color: whiteAlpha(70), marginTop: 4 }]}>{FORMAT_RU[reg.format]} · {total ? money(total) : 'без взноса'}{reg.payments[0]?.status === 'SUCCEEDED' ? ' · оплачено' : ''}</Text>
       </DeepCard>
 
@@ -63,7 +63,7 @@ export default function RegistrationScreen() {
       {canInvite && (
         <>
           <SectionHead title="добавьте напарника" />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 12 }}>
             <Search size={14} color={colors.muted} />
             <TextInput value={q} onChangeText={setQ} placeholder="имя или фамилия" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, color: colors.text, paddingVertical: 10, fontSize: 12 }]} />
           </View>
@@ -73,7 +73,7 @@ export default function RegistrationScreen() {
               <Surface key={h.id} radius={14} style={{ padding: 10, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
                 <Avatar name={h.displayName} size={32} />
                 <View style={{ flex: 1 }}><T size={11} weight="500">{h.displayName}</T><T size={9} muted>{[h.city, h.discipline?.toLowerCase()].filter(Boolean).join(' · ')}</T></View>
-                <Pressable onPress={() => invite.mutate({ userId: h.id }, { onSuccess: () => setQ('') })} style={{ backgroundColor: colors.text, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}><T size={9} color={colors.bg}>пригласить</T></Pressable>
+                <Pressable onPress={() => invite.mutate({ userId: h.id }, { onSuccess: () => setQ('') })} style={{ backgroundColor: colors.text, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}><T size={9} color={colors.bg}>пригласить</T></Pressable>
               </Surface>
             ))}
             {q.length >= 2 && hits.data?.length === 0 && <T size={9} muted>Никого не нашли. Напарник без аккаунта? Пригласите по номеру: {q.startsWith('+') ? <T size={9} color={colors.green} onPress={() => invite.mutate({ phone: q })}>отправить приглашение на {q}</T> : 'введите номер в формате +7…'}</T>}

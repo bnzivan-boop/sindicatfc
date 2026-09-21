@@ -12,7 +12,7 @@ export function Picker<T extends string>({ label, items, value, onChange }: { la
         {items.map((it) => {
           const active = it.value === value;
           return (
-            <Pressable key={it.value} onPress={() => onChange(it.value)} style={{ borderWidth: 1, borderColor: active ? colors.text : colors.line, backgroundColor: active ? colors.text : colors.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <Pressable key={it.value} onPress={() => onChange(it.value)} style={{ borderWidth: 1, borderColor: active ? colors.text : colors.line, backgroundColor: active ? colors.text : colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
               <Text style={[fontFamily, { fontSize: 11, color: active ? colors.bg : colors.text }]}>{it.label}</Text>
             </Pressable>
           );

@@ -22,7 +22,7 @@ export function PhotoPicker({ value, onChange, hint }: { value: PickedImage | nu
 
   if (value) {
     return (
-      <View style={{ borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: colors.line }}>
+      <View style={{ borderRadius: 18, overflow: 'hidden', backgroundColor: colors.surface2 }}>
         <Image source={{ uri: value.uri }} style={{ width: '100%', aspectRatio: 4 / 3 }} resizeMode="cover" />
         <Pressable onPress={() => onChange(null)} style={{ position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
           <X size={14} color={colors.text} />
@@ -39,7 +39,7 @@ export function PhotoPicker({ value, onChange, hint }: { value: PickedImage | nu
             <T size={10} color={colors.bg}>снять</T>
           </Pressable>
         )}
-        <Pressable onPress={() => pick(false)} style={{ flex: 1, height: 96, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <Pressable onPress={() => pick(false)} style={{ flex: 1, height: 96, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <ImageIcon size={20} color={colors.green} strokeWidth={1.6} />
           <T size={10}>из галереи</T>
         </Pressable>

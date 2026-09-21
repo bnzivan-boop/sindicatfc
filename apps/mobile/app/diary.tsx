@@ -2,7 +2,7 @@ import { goBack } from '../src/navigation';
 import { router } from 'expo-router';
 import { ArrowLeft, Award, Fish, Heart, MessageCircle, Plus, Trash2 } from 'lucide-react-native';
 import { Image, Pressable, Text, View } from 'react-native';
-import { fontFamily, DetailTopBar, EventTag, Page, PageTitle, Round, Surface, T } from '../src/components/ui';
+import { DetailTopBar, EventTag, fontSemi, Page, PageTitle, Round, Surface, T } from '../src/components/ui';
 import { useCatches, useDeleteCatch, usePromoteTrophy } from '../src/features/catches/useCatches';
 import { useTheme } from '../src/theme/useTheme';
 
@@ -35,7 +35,7 @@ export default function DiaryScreen() {
             )}
             <View style={{ flex: 1, gap: 3 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[fontFamily, { fontSize: 13, fontWeight: '500', color: colors.text }]}>
+                <Text style={[fontSemi, { fontSize: 13, color: colors.text }]}>
                   {c.species.nameRu}{c.lengthMm ? ` · ${c.lengthMm / 10} см` : ''}{c.weightG ? ` · ${c.weightG >= 1000 ? `${(c.weightG / 1000).toFixed(2)} кг` : `${c.weightG} г`}` : ''}
                 </Text>
                 {c.trophy?.isPersonalRecord && <EventTag>рекорд</EventTag>}

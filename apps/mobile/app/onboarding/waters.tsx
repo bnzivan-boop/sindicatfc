@@ -23,7 +23,7 @@ export default function WatersStep() {
         {Object.values(WaterType).map((w) => {
           const active = draft.waterTypes.includes(w);
           return (
-            <Pressable key={w} onPress={() => toggle(w)} style={{ borderWidth: 1, borderColor: active ? colors.text : colors.line, backgroundColor: active ? colors.text : colors.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <Pressable key={w} onPress={() => toggle(w)} style={{ borderWidth: 1, borderColor: active ? colors.text : colors.line, backgroundColor: active ? colors.text : colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
               <Text style={[fontFamily, { fontSize: 11, color: active ? colors.bg : colors.text }]}>{WATER_TYPE_LABELS_RU[w]}</Text>
             </Pressable>
           );

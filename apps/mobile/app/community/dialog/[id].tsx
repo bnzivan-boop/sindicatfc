@@ -30,7 +30,7 @@ export default function DialogScreen() {
         ))}
       </View>
       <View style={{ flexDirection: 'row', gap: 7, marginTop: 14 }}>
-        <TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="сообщение…" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, color: colors.text, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12 }]} />
+        <TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="сообщение…" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, backgroundColor: colors.surface, color: colors.text, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12 }]} />
         <Pressable onPress={send} style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' }}><Send size={16} color={colors.bg} strokeWidth={1.6} /></Pressable>
       </View>
     </Page>

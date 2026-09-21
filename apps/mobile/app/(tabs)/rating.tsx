@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { api } from '../../src/api/client';
 import { plural, SEASON_YEAR } from '../../src/api/helpers';
 import { useMe } from '../../src/auth/useAuth';
-import { Avatar, Brand, DeepCard, FilterRow, fontFamily, Page, PageTitle, Round, SectionHead, T, TopBar } from '../../src/components/ui';
+import { Avatar, Brand, DeepCard, FilterRow, fontDisplay, fontFamily, Page, PageTitle, Round, SectionHead, T, TopBar } from '../../src/components/ui';
 import { whiteAlpha } from '../../src/theme/tokens';
 import { useTheme } from '../../src/theme/useTheme';
 
@@ -43,9 +43,9 @@ export default function RatingScreen() {
           <Text style={[fontFamily, { fontSize: 10, color: whiteAlpha(62) }]}>{rows.length} {plural(rows.length, 'спортсмен', 'спортсмена', 'спортсменов')}</Text>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <Text style={[fontFamily, { fontSize: 48, lineHeight: 46, fontWeight: '500', letterSpacing: -2.9, color: colors.white }]}>{mine ? `#${mine.rank}` : '—'}</Text>
+          <Text style={[fontDisplay, { fontSize: 48, lineHeight: 46, letterSpacing: -2.9, color: colors.white }]}>{mine ? `#${mine.rank}` : '—'}</Text>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={[fontFamily, { fontSize: 20, fontWeight: '500', color: colors.white }]}>{mine ? pts(mine.points) : '0'}</Text>
+            <Text style={[fontDisplay, { fontSize: 20, color: colors.white }]}>{mine ? pts(mine.points) : '0'}</Text>
             <Text style={[fontFamily, { fontSize: 10, color: whiteAlpha(60) }]}>ваши очки</Text>
           </View>
         </View>
@@ -54,17 +54,17 @@ export default function RatingScreen() {
       {rows.length >= 3 && (
         <View style={{ flexDirection: 'row', gap: 7, alignItems: 'flex-end', marginVertical: 14 }}>
           {podium.map((r, i) => r && (
-            <Pressable key={r.userId} onPress={() => router.push({ pathname: '/user/[id]', params: { id: r.userId } })} style={{ flex: 1, alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: i === 1 ? `${colors.green}99` : colors.line, borderRadius: 17, paddingHorizontal: 7, paddingVertical: 12, paddingTop: i === 1 ? 18 : 12 }}>
+            <Pressable key={r.userId} onPress={() => router.push({ pathname: '/user/[id]', params: { id: r.userId } })} style={{ flex: 1, alignItems: 'center', backgroundColor: i === 1 ? colors.deep : colors.surface, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 12, paddingTop: i === 1 ? 18 : 12 }}>
               <View style={{ marginBottom: 8 }}><Avatar name={r.user.profile?.displayName ?? '—'} size={i === 1 ? 46 : 38} lime={i === 1} /></View>
-              <T size={10} weight="500">{short(r.user.profile?.displayName ?? '—')}</T>
-              <T size={9} muted>{pts(r.points)}</T>
+              <T size={10} weight="500" color={i === 1 ? colors.white : colors.text}>{short(r.user.profile?.displayName ?? '—')}</T>
+              <T size={9} color={i === 1 ? colors.lime : colors.muted}>{pts(r.points)}</T>
             </Pressable>
           ))}
         </View>
       )}
 
       <SectionHead title="таблица спортсменов" action="поиск" />
-      <View style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 18, overflow: 'hidden' }}>
+      <View style={{ backgroundColor: colors.surface2, borderRadius: 18, overflow: 'hidden' }}>
         {rows.length === 0 && <View style={{ padding: 12, backgroundColor: colors.surface }}><T size={10} muted>{isLoading ? 'Загрузка…' : 'Очки появятся после первого финализированного старта'}</T></View>}
         {rows.map((r, i) => {
           const isMe = r.userId === me.data?.id;

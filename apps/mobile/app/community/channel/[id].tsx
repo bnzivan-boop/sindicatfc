@@ -3,7 +3,7 @@ import { ArrowLeft, Image as ImageIcon, MessagesSquare, Package, Settings2, Squa
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useMe } from '../../../src/auth/useAuth';
-import { Avatar, DeepCard, DetailTopBar, fontFamily, Page, Round, SectionHead, Surface, T } from '../../../src/components/ui';
+import { Avatar, DeepCard, DetailTopBar, fontDisplay, fontFamily, Page, Round, SectionHead, Surface, T } from '../../../src/components/ui';
 import { Mark, PostCard, Segmented } from '../../../src/features/community/components';
 import { useChannel, useJoinChannel, usePosts } from '../../../src/features/community/useCommunity';
 import { goBack } from '../../../src/navigation';
@@ -34,10 +34,10 @@ export default function ChannelScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
           <Mark text={mark} official size={48} />
           <View style={{ flex: 1 }}>
-            <Text style={[fontFamily, { fontSize: 20, fontWeight: '500', letterSpacing: -0.7, color: colors.white }]}>{c.name}</Text>
+            <Text style={[fontDisplay, { fontSize: 20, letterSpacing: -0.7, color: colors.white }]}>{c.name}</Text>
             <Text style={[fontFamily, { fontSize: 9, color: whiteAlpha(65) }]}>{c.members} участников · {c.posts} публикаций{c.city ? ` · ${c.city}` : ''}</Text>
           </View>
-          <Pressable onPress={() => (me.data ? join.mutate() : router.push('/onboarding'))} style={{ backgroundColor: c.joined ? whiteAlpha(15) : colors.lime, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}><T size={9} color={c.joined ? colors.white : colors.onLime}>{c.joined ? 'вы участник' : 'вступить'}</T></Pressable>
+          <Pressable onPress={() => (me.data ? join.mutate() : router.push('/onboarding'))} style={{ backgroundColor: c.joined ? whiteAlpha(15) : colors.lime, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}><T size={9} color={c.joined ? colors.white : colors.onLime}>{c.joined ? 'вы участник' : 'вступить'}</T></Pressable>
         </View>
         {c.owner && <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}><Text style={[fontFamily, { fontSize: 8, color: whiteAlpha(60) }]}>владелец: {c.owner}</Text><Text style={[fontFamily, { fontSize: 8, color: whiteAlpha(60) }]}>{c.admins} администратора</Text></View>}
       </DeepCard>

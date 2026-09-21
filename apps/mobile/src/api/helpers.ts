@@ -14,9 +14,23 @@ export const STATUS_LABEL: Partial<Record<TournamentStatus, string>> = {
 };
 
 export const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+/** Короткие месяцы для бейджей дат макета: «Сент» */
+export const MONTHS_SHORT = ['Янв', 'Февр', 'Март', 'Апр', 'Май', 'Июнь', 'Июль', 'Авг', 'Сент', 'Окт', 'Нояб', 'Дек'];
 export const MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 
 export const money = (minor: number) => `${(minor / 100).toLocaleString('ru-RU')} ₽`;
+/** Цена в карточках макета: «3500₽» без разрядов и пробела. */
+export const moneyTight = (minor: number) => `${Math.round(minor / 100)}₽`;
+/** «17 часов назад» — полные слова, как в макете ленты. */
+export const agoWords = (iso: string) => {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (m < 1) return 'только что';
+  if (m < 60) return `${m} ${plural(m, 'минуту', 'минуты', 'минут')} назад`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} ${plural(h, 'час', 'часа', 'часов')} назад`;
+  const d = Math.round(h / 24);
+  return `${d} ${plural(d, 'день', 'дня', 'дней')} назад`;
+};
 export const hours = (from: string, to: string) => {
   const h = (new Date(to).getTime() - new Date(from).getTime()) / 3_600_000;
   return `${h % 1 === 0 ? h : h.toFixed(1).replace('.', ',')} ${h === 1 ? 'час' : h < 5 ? 'часа' : 'часов'}`;

@@ -37,7 +37,7 @@ export default function AboutStep() {
         {cityText.trim().length >= 1 && (cities.data ?? []).some((c) => c.name.toLowerCase().startsWith(cityText.trim().toLowerCase()) && c.name.toLowerCase() !== cityText.trim().toLowerCase()) && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
             {(cities.data ?? []).filter((c) => c.name.toLowerCase().startsWith(cityText.trim().toLowerCase())).slice(0, 6).map((c) => (
-              <Pressable key={c.id} onPress={() => setCityText(c.name)} style={{ borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}><Text style={[fontFamily, { fontSize: 11, color: colors.text }]}>{c.name}</Text></Pressable>
+              <Pressable key={c.id} onPress={() => setCityText(c.name)} style={{ backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}><Text style={[fontFamily, { fontSize: 11, color: colors.text }]}>{c.name}</Text></Pressable>
             ))}
           </ScrollView>
         )}

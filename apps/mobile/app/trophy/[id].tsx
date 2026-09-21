@@ -3,7 +3,7 @@ import { ArrowLeft, Award, Fish, Heart, MapPin, MessageCircle, Send, Share2, Tra
 import { useState } from 'react';
 import { Dimensions, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useMe } from '../../src/auth/useAuth';
-import { Avatar, DetailTopBar, EventTag, fontFamily, InfoList, InfoRow, Page, Round, SectionHead, Surface, T } from '../../src/components/ui';
+import { Avatar, DetailTopBar, EventTag, fontDisplay, fontFamily, InfoList, InfoRow, Page, Round, SectionHead, Surface, T } from '../../src/components/ui';
 import { fmtFish, useCommentTrophy, useDeleteComment, useLikeTrophy, useTrophy } from '../../src/features/trophies/useTrophies';
 import { goBack } from '../../src/navigation';
 import { useTheme } from '../../src/theme/useTheme';
@@ -60,14 +60,14 @@ export default function TrophyScreen() {
       {/* заголовок + действия */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 14 }}>
         <View>
-          <Text style={[fontFamily, { fontSize: 24, fontWeight: '500', letterSpacing: -0.9, color: colors.text }]}>{t.species}</Text>
+          <Text style={[fontDisplay, { fontSize: 24, letterSpacing: -0.9, color: colors.text }]}>{t.species}</Text>
           <Text style={[fontFamily, { fontSize: 13, color: colors.muted }]}>{fmtFish(t.lengthMm, t.weightG) || 'без замеров'}</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable onPress={() => (me.data ? like.mutate() : router.push('/onboarding'))} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: t.likedByMe ? `${colors.green}1f` : colors.surface2, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
+          <Pressable onPress={() => (me.data ? like.mutate() : router.push('/onboarding'))} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: t.likedByMe ? `${colors.green}1f` : colors.surface2, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
             <Heart size={14} color={t.likedByMe ? colors.green : colors.text} fill={t.likedByMe ? colors.green : 'transparent'} strokeWidth={1.6} /><T size={11} color={t.likedByMe ? colors.green : colors.text}>{t.likes}</T>
           </Pressable>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.surface2, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}><MessageCircle size={14} color={colors.text} strokeWidth={1.6} /><T size={11}>{t.comments.length}</T></View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.surface2, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}><MessageCircle size={14} color={colors.text} strokeWidth={1.6} /><T size={11}>{t.comments.length}</T></View>
         </View>
       </View>
       {t.description ? <T size={12} style={{ lineHeight: 18, marginTop: 10 }}>{t.description}</T> : null}
@@ -88,7 +88,7 @@ export default function TrophyScreen() {
           return (
             <View key={c.id} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
               <Pressable onPress={() => router.push(mine ? '/(tabs)/profile' : { pathname: '/user/[id]', params: { id: c.authorId } })}><Avatar name={c.author} size={28} lime={mine} /></Pressable>
-              <View style={{ flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 14, padding: 10, gap: 3 }}>
+              <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, padding: 10, gap: 3 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><T size={10} weight="500">{mine ? 'Вы' : c.author}</T><T size={8} muted>{ago(c.createdAt)}</T></View>
                 <T size={11} style={{ lineHeight: 16 }}>{c.text}</T>
                 {(mine || t.owner.id === me.data?.id) && <Pressable onPress={() => del.mutate(c.id)} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-end' }}><Trash2 size={9} color={colors.muted} /><T size={8} muted>удалить</T></Pressable>}
@@ -99,7 +99,7 @@ export default function TrophyScreen() {
       </View>
       {me.data ? (
         <View style={{ flexDirection: 'row', gap: 7, marginTop: 12 }}>
-          <TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="написать комментарий…" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, color: colors.text, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12 }]} />
+          <TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="написать комментарий…" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, backgroundColor: colors.surface, color: colors.text, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12 }]} />
           <Pressable onPress={send} disabled={comment.isPending} style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' }}><Send size={16} color={colors.bg} strokeWidth={1.6} /></Pressable>
         </View>
       ) : (

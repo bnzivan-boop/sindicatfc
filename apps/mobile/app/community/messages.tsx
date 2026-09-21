@@ -18,7 +18,7 @@ export default function MessagesScreen() {
     <Page>
       <DetailTopBar title="сообщения" left={<Round icon={ArrowLeft} onPress={() => goBack('/(tabs)/community')} />} right={<Round icon={SquarePen} />} />
       <PageTitle title="чаты" subtitle="личные сообщения и каналы" />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 12, marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 12, marginBottom: 12 }}>
         <Search size={14} color={colors.muted} />
         <TextInput value={q} onChangeText={setQ} placeholder="найти диалог" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, color: colors.text, paddingVertical: 10, fontSize: 12 }]} />
       </View>

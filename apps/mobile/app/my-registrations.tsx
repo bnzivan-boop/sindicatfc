@@ -42,12 +42,12 @@ export default function MyRegistrationsScreen() {
           <SectionHead title="приглашения" tag={String(inv.data!.length)} />
           <View style={{ gap: 7 }}>
             {inv.data!.map((i) => (
-              <Surface key={i.id} radius={16} style={{ padding: 12, gap: 8, borderColor: colors.green }}>
+              <Surface key={i.id} radius={10} style={{ padding: 12, gap: 8, backgroundColor: colors.lime }}>
                 <T size={11} weight="500">{i.registration.owner.profile?.displayName ?? 'Участник'} зовёт в {i.registration.format === 'PAIR' ? 'пару' : 'команду'}</T>
                 <T size={10} muted>{i.registration.tournament.title} · {new Date(i.registration.tournament.startsAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</T>
                 <View style={{ flexDirection: 'row', gap: 7 }}>
                   <Pressable onPress={() => respond.mutate({ registrationId: i.registration.id, accept: true })} style={{ flex: 1, backgroundColor: colors.lime, borderRadius: 11, padding: 10, alignItems: 'center' }}><T size={10} weight="500" color={colors.onLime}>принять</T></Pressable>
-                  <Pressable onPress={() => respond.mutate({ registrationId: i.registration.id, accept: false })} style={{ flex: 1, borderWidth: 1, borderColor: colors.line, borderRadius: 11, padding: 10, alignItems: 'center' }}><T size={10}>отказаться</T></Pressable>
+                  <Pressable onPress={() => respond.mutate({ registrationId: i.registration.id, accept: false })} style={{ flex: 1, backgroundColor: colors.surface2, borderRadius: 11, padding: 10, alignItems: 'center' }}><T size={10}>отказаться</T></Pressable>
                 </View>
               </Surface>
             ))}

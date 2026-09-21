@@ -2,22 +2,21 @@ import { router } from 'expo-router';
 import { CalendarPlus, MessageCircle, Plus, Search, ShieldPlus } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Avatar, Brand, EventTag, FilterRow, Page, PageTitle, Round, SectionHead, Surface, T, TopBar } from '../../src/components/ui';
-import { CreateRow, Mark, PostCard, Segmented } from '../../src/features/community/components';
+import { Avatar, Brand, EventTag, Page, PageTitle, Round, SectionHead, Surface, T, TopBar } from '../../src/components/ui';
+import { CreateRow, Mark, Segmented } from '../../src/features/community/components';
+import { FeedFilters, Timeline, type FeedFilter } from '../../src/features/community/Timeline';
 import { DISCIPLINE_LABELS_RU } from '@sindikat/domain';
 import { useMe } from '../../src/auth/useAuth';
-import { useChannels, useClubs, useDecideTrip, useJoinTrip, useMatches, usePosts, useTrips, when, type ChannelRow } from '../../src/features/community/useCommunity';
-import { TrophyFeedCard } from '../../src/features/trophies/TrophyFeedCard';
-import { useTrophyFeed } from '../../src/features/trophies/useTrophies';
+import { useChannels, useClubs, useDecideTrip, useJoinTrip, useMatches, useTrips, when, type ChannelRow } from '../../src/features/community/useCommunity';
 import { useTheme } from '../../src/theme/useTheme';
 
 type Tab = 'feed' | 'channels' | 'company' | 'clubs';
 
-/** community-view прототипа: лента · каналы · выезды · клубы. Данные моковые (см. features/community/mock.ts). */
+/** community-view прототипа: лента · каналы · выезды · клубы. Лента общая с главной (features/community/Timeline). */
 export default function CommunityScreen() {
   const { colors } = useTheme();
   const [tab, setTab] = useState<Tab>('feed');
-  const [feedFilter, setFeedFilter] = useState<'for-you' | 'subs' | 'near'>('for-you');
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>('for-you');
   const [company, setCompany] = useState<'trips' | 'people'>('trips');
   const me = useMe();
   const trips = useTrips();
@@ -26,14 +25,7 @@ export default function CommunityScreen() {
   const joinTrip = useJoinTrip();
   const decideTrip = useDecideTrip();
   const [invited, setInvited] = useState<Record<string, boolean>>({});
-  const scope = feedFilter === 'subs' ? 'friends' : 'all';
-  const feed = useTrophyFeed(scope);
-  const posts = usePosts(undefined, scope);
   const channels = useChannels();
-  const timeline = [
-    ...(feed.data?.items ?? []).map((t) => ({ kind: 'trophy' as const, at: t.publishedAt, t })),
-    ...(posts.data ?? []).map((p) => ({ kind: 'post' as const, at: p.createdAt, p })),
-  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
   return (
     <Page>
@@ -43,11 +35,8 @@ export default function CommunityScreen() {
 
       {tab === 'feed' && (
         <>
-          <FilterRow items={[{ value: 'for-you' as const, label: 'для вас' }, { value: 'subs' as const, label: 'подписки' }, { value: 'near' as const, label: 'рядом' }]} value={feedFilter} onChange={setFeedFilter} />
-          <View style={{ gap: 10 }}>
-            {timeline.length === 0 && <Surface><T size={10} muted>{feed.isLoading || posts.isLoading ? 'Загрузка…' : feedFilter === 'subs' ? 'Здесь публикации друзей и ваших каналов. Добавьте друзей — они на вкладке «кого добавить» в профиле.' : 'Лента пуста'}</T></Surface>}
-            {timeline.map((x) => (x.kind === 'trophy' ? <TrophyFeedCard key={`t-${x.t.id}`} item={x.t} /> : <PostCard key={`p-${x.p.id}`} post={x.p} onOpen={() => router.push({ pathname: '/community/topic/[id]', params: { id: x.p.id } })} />))}
-          </View>
+          <FeedFilters value={feedFilter} onChange={setFeedFilter} />
+          <Timeline filter={feedFilter} />
         </>
       )}
 
@@ -77,14 +66,14 @@ export default function CommunityScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                     <Pressable onPress={() => router.push(t.author.id === me.data?.id ? '/(tabs)/profile' : { pathname: '/user/[id]', params: { id: t.author.id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Avatar name={t.author.displayName} size={24} /><T size={10}>{t.author.displayName.split(' ')[0]} · {t.author.meta}</T></Pressable>
                     {t.isAuthor ? <T size={9} color={colors.green}>вы организатор{t.requests.length ? ` · ${t.requests.length} заявок` : ''}</T> : (
-                      <Pressable onPress={() => (me.data ? joinTrip.mutate(t.id) : router.push('/onboarding'))} disabled={!t.seatsLeft && !t.myStatus} style={{ backgroundColor: t.myStatus === 'INVITED' ? colors.lime : t.myStatus ? colors.surface2 : colors.text, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, opacity: !t.seatsLeft && !t.myStatus ? 0.5 : 1 }}><T size={9} color={t.myStatus === 'INVITED' ? colors.onLime : t.myStatus ? colors.text : colors.bg}>{t.myStatus === 'ACCEPTED' ? 'вы едете' : t.myStatus === 'REQUESTED' ? 'запрос отправлен' : t.myStatus === 'INVITED' ? 'вас зовут · принять' : t.myStatus === 'DECLINED' ? 'отказано' : 'присоединиться'}</T></Pressable>
+                      <Pressable onPress={() => (me.data ? joinTrip.mutate(t.id) : router.push('/onboarding'))} disabled={!t.seatsLeft && !t.myStatus} style={{ backgroundColor: t.myStatus === 'INVITED' ? colors.lime : t.myStatus ? colors.surface2 : colors.text, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, opacity: !t.seatsLeft && !t.myStatus ? 0.5 : 1 }}><T size={9} color={t.myStatus === 'INVITED' ? colors.onLime : t.myStatus ? colors.text : colors.bg}>{t.myStatus === 'ACCEPTED' ? 'вы едете' : t.myStatus === 'REQUESTED' ? 'запрос отправлен' : t.myStatus === 'INVITED' ? 'вас зовут · принять' : t.myStatus === 'DECLINED' ? 'отказано' : 'присоединиться'}</T></Pressable>
                     )}
                   </View>
                   {t.isAuthor && t.requests.map((uid) => (
                     <View key={uid} style={{ flexDirection: 'row', gap: 7, alignItems: 'center', marginTop: 6 }}>
                       <T size={10} style={{ flex: 1 }}>заявка от участника</T>
-                      <Pressable onPress={() => decideTrip.mutate({ id: t.id, userId: uid, accept: true })} style={{ backgroundColor: colors.lime, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><T size={9} color={colors.onLime}>взять</T></Pressable>
-                      <Pressable onPress={() => decideTrip.mutate({ id: t.id, userId: uid, accept: false })} style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><T size={9}>отказать</T></Pressable>
+                      <Pressable onPress={() => decideTrip.mutate({ id: t.id, userId: uid, accept: true })} style={{ backgroundColor: colors.lime, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}><T size={9} color={colors.onLime}>взять</T></Pressable>
+                      <Pressable onPress={() => decideTrip.mutate({ id: t.id, userId: uid, accept: false })} style={{ backgroundColor: colors.surface2, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}><T size={9}>отказать</T></Pressable>
                     </View>
                   ))}
                 </Surface>
@@ -103,7 +92,7 @@ export default function CommunityScreen() {
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>{m.reasons.map((r) => <EventTag key={r} plain>{r}</EventTag>)}</View>
                   <View style={{ flexDirection: 'row', gap: 7 }}>
-                    <Pressable onPress={() => router.push({ pathname: '/user/[id]', params: { id: m.id } })} style={{ flex: 1, borderWidth: 1, borderColor: colors.line, borderRadius: 11, padding: 9, alignItems: 'center' }}><T size={9}>профиль</T></Pressable>
+                    <Pressable onPress={() => router.push({ pathname: '/user/[id]', params: { id: m.id } })} style={{ flex: 1, backgroundColor: colors.surface2, borderRadius: 11, padding: 9, alignItems: 'center' }}><T size={9}>профиль</T></Pressable>
                     <Pressable onPress={() => setInvited({ ...invited, [m.id]: true })} style={{ flex: 1, backgroundColor: invited[m.id] ? colors.surface2 : colors.text, borderRadius: 11, padding: 9, alignItems: 'center' }}><T size={9} color={invited[m.id] ? colors.text : colors.bg}>{invited[m.id] ? 'приглашение отправлено' : 'позвать'}</T></Pressable>
                   </View>
                 </Surface>

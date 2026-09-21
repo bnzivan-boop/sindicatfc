@@ -1,4 +1,7 @@
+import { FiraSansExtraCondensed_600SemiBold } from '@expo-google-fonts/fira-sans-extra-condensed';
+import { InterTight_400Regular, InterTight_500Medium, InterTight_600SemiBold } from '@expo-google-fonts/inter-tight';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../src/theme/useTheme';
@@ -14,6 +17,10 @@ function PushRegistrar() {
 
 export default function RootLayout() {
   const { colors, scheme } = useTheme();
+  // Шрифты макета Figma: Fira Sans Extra Condensed (заголовки) + Inter Tight (текст). До загрузки экран не рисуем,
+  // чтобы не мигал системный шрифт; при ошибке загрузки показываем как есть.
+  const [fontsReady, fontsError] = useFonts({ FiraSansExtraCondensed_600SemiBold, InterTight_400Regular, InterTight_500Medium, InterTight_600SemiBold });
+  if (!fontsReady && !fontsError) return null;
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />

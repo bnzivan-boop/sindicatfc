@@ -1,52 +1,55 @@
-import { Bookmark, Ellipsis, Heart, MessageCircle, Radio, Shield, type LucideIcon } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
-import { Avatar, fontFamily, Surface, T } from '../../components/ui';
-import { useTheme } from '../../theme/useTheme';
 import { router } from 'expo-router';
+import { type LucideIcon } from 'lucide-react-native';
+import { Pressable, Text, View } from 'react-native';
+import HeartIcon from '../../../assets/figma/heart.svg';
+import MessageIcon from '../../../assets/figma/message-feed.svg';
+import { agoWords } from '../../api/helpers';
 import { useMe } from '../../auth/useAuth';
-import { ago, useLikePost, type PostRow } from './useCommunity';
+import { Body, useFigmaSurfaces } from '../../components/figma/ui';
+import { Avatar, fontSemi, Surface, T } from '../../components/ui';
+import { figma } from '../../theme/figma';
+import { useTheme } from '../../theme/useTheme';
+import { useLikePost, type PostRow } from './useCommunity';
 
-/** .post из прототипа: автор, source-chip (канал · рубрика), заголовок, текст, действия. Данные — API. */
+/** Публикация в ленте по макету Figma «Болталка»: автор, канал плашкой, заголовок, текст; лайки/комментарии — чипами как у трофея. */
 export function PostCard({ post, onOpen }: { post: PostRow; onOpen: () => void }) {
-  const { colors } = useTheme();
+  const s = useFigmaSurfaces();
   const me = useMe();
   const like = useLikePost();
-  const SourceIcon: LucideIcon = post.channel.kind === 'OFFICIAL' ? Shield : Radio;
   const openAuthor = () => router.push(post.author.id === me.data?.id ? '/(tabs)/profile' : { pathname: '/user/[id]', params: { id: post.author.id } });
   return (
-    <Surface radius={18} style={{ padding: 13, gap: 9 }}>
-      <Pressable onPress={openAuthor} style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-        <Avatar name={post.author.displayName} size={34} />
-        <View style={{ flex: 1 }}>
-          <T size={11} weight="500">{post.author.displayName}</T>
-          <T size={9} muted>{[ago(post.createdAt), post.author.city].filter(Boolean).join(' · ')}</T>
-        </View>
-        <Ellipsis size={16} color={colors.muted} />
-      </Pressable>
-      <Pressable onPress={() => router.push({ pathname: '/community/channel/[id]', params: { id: post.channel.id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: colors.surface2, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 }}>
-        <SourceIcon size={10} color={colors.green} />
-        <T size={9}>{post.channel.name}{post.rubric ? ` · ${post.rubric}` : ''}</T>
-      </Pressable>
-      <Pressable onPress={onOpen}>
-        <Text style={[fontFamily, { fontSize: 14, fontWeight: '500', letterSpacing: -0.3, color: colors.text, marginBottom: 4 }]}>{post.title}</Text>
-        <T size={11} style={{ lineHeight: 16 }} numberOfLines={4}>{post.text}</T>
-      </Pressable>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Action icon={Heart} label={String(post.likes)} active={post.likedByMe} onPress={() => (me.data ? like.mutate(post.id) : router.push('/onboarding'))} />
-        <Action icon={MessageCircle} label={String(post.comments)} onPress={onOpen} />
-        <Action icon={Bookmark} />
+    <View style={{ backgroundColor: s.postCard, borderRadius: 20, padding: 20, gap: 11 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <Pressable onPress={openAuthor} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          <Avatar name={post.author.displayName} size={40} radius={10} />
+          <View style={{ gap: 4, flex: 1 }}>
+            <Body size={20} weight="semibold" color={s.text} numberOfLines={1}>{post.author.displayName}</Body>
+            <View style={{ flexDirection: 'row', gap: 9 }}>
+              <Body size={8} weight="medium" tracking={-0.08} color={s.text40}>{agoWords(post.createdAt)}</Body>
+              {post.author.city ? <Body size={8} weight="medium" tracking={-0.08} color={s.text40}>{post.author.city}</Body> : null}
+            </View>
+          </View>
+        </Pressable>
+        <Body size={8} weight="medium" tracking={-0.08} color={s.text40}>{post.channel.kind === 'OFFICIAL' ? 'Официальный' : 'Публикация'}</Body>
       </View>
-    </Surface>
-  );
-}
-
-function Action({ icon: Icon, label, active, onPress }: { icon: LucideIcon; label?: string; active?: boolean; onPress?: () => void }) {
-  const { colors } = useTheme();
-  return (
-    <Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: active ? `${colors.green}1f` : colors.surface2, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
-      <Icon size={13} color={active ? colors.green : colors.text} strokeWidth={1.6} fill={active ? colors.green : 'transparent'} />
-      {label ? <T size={10} color={active ? colors.green : colors.text}>{label}</T> : null}
-    </Pressable>
+      <Pressable onPress={() => router.push({ pathname: '/community/channel/[id]', params: { id: post.channel.id } })} style={{ alignSelf: 'flex-start', backgroundColor: s.label, paddingHorizontal: 6, paddingVertical: 3 }}>
+        <Body size={11} lineHeight={14} weight="semibold" color={s.text}>{post.channel.name}{post.rubric ? ` ${post.rubric}` : ''}</Body>
+      </Pressable>
+      <Pressable onPress={onOpen} style={{ gap: 6 }}>
+        <Body size={14} lineHeight={14} weight="semibold" color={s.text}>{post.title}</Body>
+        <Body size={14} lineHeight={21} tracking={-0.14} color={s.text} numberOfLines={6}>{post.text}</Body>
+      </Pressable>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        <Pressable onPress={() => (me.data ? like.mutate(post.id) : router.push('/onboarding'))} style={{ flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: post.likedByMe ? figma.lime : s.chip, borderRadius: 20, paddingHorizontal: 7, paddingVertical: 4 }}>
+          <View style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}><HeartIcon width={14} height={12} color={post.likedByMe ? '#000000' : s.text} /></View>
+          <Body size={14} lineHeight={14} weight="semibold" color={post.likedByMe ? '#000000' : s.text}>{String(post.likes)}</Body>
+        </Pressable>
+        <Pressable onPress={onOpen} style={{ flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: s.chip, borderRadius: 20, paddingHorizontal: 7, paddingVertical: 4 }}>
+          <MessageIcon width={14} height={14} color={s.text} />
+          <Body size={14} lineHeight={14} weight="semibold" color={s.text}>{String(post.comments)}</Body>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -83,7 +86,7 @@ export function Mark({ text, official, size = 38 }: { text: string; official?: b
   const { colors } = useTheme();
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: official ? colors.lime : colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={[fontFamily, { fontSize: size * 0.28, fontWeight: '500', color: official ? colors.onLime : colors.text }]}>{text}</Text>
+      <Text style={[fontSemi, { fontSize: size * 0.28, color: official ? colors.onLime : colors.text }]}>{text}</Text>
     </View>
   );
 }

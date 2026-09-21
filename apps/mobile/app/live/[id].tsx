@@ -9,7 +9,7 @@ import { useLeaderboard, useTournament } from '../../src/api/tournaments';
 import { useMyResults } from '../../src/features/results/useResults';
 import { useOutbox } from '../../src/features/results/useOutbox';
 import { useMe } from '../../src/auth/useAuth';
-import { ActionButton, DeepCard, DetailTopBar, fontFamily, Page, Pathway, Round, SectionHead, Surface, T } from '../../src/components/ui';
+import { ActionButton, DeepCard, DetailTopBar, fontDisplay, fontFamily, Page, Pathway, Round, SectionHead, Surface, T } from '../../src/components/ui';
 import { useTheme } from '../../src/theme/useTheme';
 
 function useCountdown(to?: string) {
@@ -51,8 +51,8 @@ export default function LiveScreen() {
           <Text style={[fontFamily, { fontSize: 11, color: colors.white }]}>{t?.title ?? '…'}</Text>
           <Text style={[fontFamily, { fontSize: 11, color: colors.lime }]}>● {finished ? 'завершён' : t?.status === 'LIVE' ? 'идёт сейчас' : 'подведение итогов'}</Text>
         </View>
-        <Text style={[fontFamily, { fontSize: 23, fontWeight: '500', letterSpacing: -0.9, color: colors.white, marginTop: 24, marginBottom: 5 }]}>{finished ? 'финальный протокол' : 'до финиша'}</Text>
-        <Text style={[fontFamily, { fontSize: 31, fontWeight: '500', color: colors.white, marginTop: 13, fontVariant: ['tabular-nums'] }]}>{finished ? (t ? new Date(t.startsAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '') : timer}</Text>
+        <Text style={[fontDisplay, { fontSize: 23, letterSpacing: -0.9, color: colors.white, marginTop: 24, marginBottom: 5 }]}>{finished ? 'финальный протокол' : 'до финиша'}</Text>
+        <Text style={[fontDisplay, { fontSize: 40, lineHeight: 40, letterSpacing: -1.6, color: colors.white, marginTop: 13, fontVariant: ['tabular-nums'] }]}>{finished ? (t ? new Date(t.startsAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '') : timer}</Text>
         <Text style={[fontFamily, { fontSize: 10, color: colors.white, opacity: 0.7, marginTop: 6 }]}>
           {t?.registeredCount ?? 0} {plural(t?.registeredCount ?? 0, 'участник', 'участника', 'участников')} · принято {accepted} результатов
         </Text>
@@ -66,7 +66,7 @@ export default function LiveScreen() {
       </View>}
 
       <SectionHead title={finished ? "итоги" : "live-рейтинг"} action="правила" onAction={() => router.push({ pathname: '/tournament/[id]', params: { id } })} />
-      <View style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 17, overflow: 'hidden' }}>
+      <View style={{ backgroundColor: colors.surface2, borderRadius: 17, overflow: 'hidden' }}>
         {entries.length === 0 && <View style={{ padding: 12, backgroundColor: colors.surface }}><T size={9} muted>принятых результатов пока нет</T></View>}
         {entries.map((e, i) => {
           const isMe = e.participantId === me.data?.id;

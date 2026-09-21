@@ -43,7 +43,7 @@ export default function FriendsScreen() {
 
       {tab === 'friends' && (
         <View style={{ gap: 7 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 12 }}>
             <Search size={14} color={colors.muted} />
             <TextInput value={q} onChangeText={setQ} placeholder="найти участника по имени" placeholderTextColor={colors.muted} style={[fontFamily, { flex: 1, color: colors.text, paddingVertical: 10, fontSize: 12 }]} />
           </View>
