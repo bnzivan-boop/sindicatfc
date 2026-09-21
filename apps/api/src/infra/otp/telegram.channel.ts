@@ -13,6 +13,8 @@ export class TelegramOtpChannel implements OtpChannel {
   readonly name = 'telegram' as const;
   private readonly logger = new Logger(TelegramOtpChannel.name);
   private readonly base = 'https://gatewayapi.telegram.org';
+  /** request_id из checkSendAbility: передаётся в sendVerificationMessage — иначе FLOOD_WAIT и двойная тарификация */
+  private readonly pending = new Map<string, { requestId: string; at: number }>();
 
   constructor(private readonly config: ConfigService<Env, true>) {}
 
@@ -32,8 +34,9 @@ export class TelegramOtpChannel implements OtpChannel {
 
   async canSend(phone: string) {
     try {
-      // Успех = у номера есть Telegram и лимиты позволяют; ответ содержит request_id, который можно переиспользовать
-      await this.call<{ request_id: string }>('checkSendAbility', { phone_number: phone });
+      // Успех = у номера есть Telegram и лимиты позволяют; request_id переиспользуем в send
+      const r = await this.call<{ request_id: string }>('checkSendAbility', { phone_number: phone });
+      this.pending.set(phone, { requestId: r.request_id, at: Date.now() });
       return true;
     } catch (e) {
       this.logger.debug(`checkSendAbility ${phone}: ${e instanceof Error ? e.message : e}`);
@@ -42,7 +45,16 @@ export class TelegramOtpChannel implements OtpChannel {
   }
 
   async send(phone: string, code: string) {
-    const r = await this.call<{ request_id: string }>('sendVerificationMessage', { phone_number: phone, code, ttl: 300, sender_username: this.config.get('TELEGRAM_GATEWAY_SENDER') || undefined });
+    const prev = this.pending.get(phone);
+    this.pending.delete(phone);
+    const r = await this.call<{ request_id: string }>('sendVerificationMessage', {
+      phone_number: phone,
+      code,
+      ttl: 300,
+      sender_username: this.config.get('TELEGRAM_GATEWAY_SENDER') || undefined,
+      // request_id от проверки живёт недолго; берём только свежий
+      request_id: prev && Date.now() - prev.at < 60_000 ? prev.requestId : undefined,
+    });
     return { providerRequestId: r.request_id };
   }
 }
