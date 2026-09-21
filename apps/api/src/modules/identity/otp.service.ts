@@ -8,7 +8,8 @@ import type { OtpChannelName } from '../../infra/otp/channel.js';
 
 const OTP_TTL_MS = 5 * 60_000;
 const MAX_ATTEMPTS = 5;
-const MAX_PER_HOUR = 5;
+/** Лимит запросов кода на номер в час; в dev выше — из-за тестов (OTP_MAX_PER_HOUR). */
+const DEFAULT_MAX_PER_HOUR = 5;
 
 /**
  * OTP по телефону. Код хранится хэшем; лимиты на выдачу и попытки (handoff, 12 — rate limit).
@@ -26,7 +27,8 @@ export class OtpService {
   async issue(phone: string, prefer?: OtpChannelName) {
     const since = new Date(Date.now() - 3_600_000);
     const recent = await this.prisma.otpChallenge.count({ where: { phone, createdAt: { gte: since } } });
-    if (recent >= MAX_PER_HOUR) throw new HttpException('Слишком много запросов кода', HttpStatus.TOO_MANY_REQUESTS);
+    const max = this.config.get('OTP_MAX_PER_HOUR') ?? DEFAULT_MAX_PER_HOUR;
+    if (recent >= max) throw new HttpException(`Слишком много запросов кода (${max} в час). Попробуйте позже.`, HttpStatus.TOO_MANY_REQUESTS);
 
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const delivered = await this.delivery.deliver(phone, code, prefer);

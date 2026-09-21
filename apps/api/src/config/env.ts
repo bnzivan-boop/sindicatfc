@@ -20,6 +20,7 @@ export const envSchema = z.object({
   OTP_CHANNELS: z.string().default('console'),
   /** Универсальный код для демо-входа; работает только если в каскаде есть console. */
   OTP_DEV_CODE: z.string().regex(/^\d{4,6}$/).optional(),
+  OTP_MAX_PER_HOUR: z.coerce.number().int().positive().optional(),
   TELEGRAM_GATEWAY_TOKEN: z.string().optional(),
   TELEGRAM_GATEWAY_SENDER: z.string().optional(),
   VK_OTP_URL: z.string().url().or(z.literal('')).optional(),
